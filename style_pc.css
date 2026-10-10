@@ -1,0 +1,3155 @@
+/* style_pc.css — estilos base y de computadora (también se usan en el celular como base). Las reglas exclusivas del celular están en style_mov.css */
+
+/* =========================================================
+   Start Page
+   1. Variables y base
+   2. Estructura (main, encabezado, reloj)
+   3. Barra de búsqueda
+   4. Menús desplegables (buscadores y recientes)
+   5. Enlaces
+   6. Pie de página
+   7. Fondo de pantalla
+   8. Liquid Glass
+   9. Animación de las tarjetas al pasar el mouse
+  10. Animación de los menús (buscadores y recientes)
+  11. Autocompletado
+  12. Clima
+  13. Accesos directos
+  14. Buscador rápido (Ctrl + V)
+  15. Pantalla de inicio
+   ========================================================= */
+
+/* ---------- 1. Variables y base ---------- */
+:root{
+  --bg:     #f6f5f2;
+  --panel:  #ffffff;
+  --ink:    #1b1b1f;
+  --muted:  #6b6f76;
+  --faint:  #9a9da3;
+  --border: #e6e4de;
+  --accent: #0e6b5c;
+  --sans:  'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --serif: 'Fraunces', ui-serif, Georgia, serif;
+
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Modo oscuro: sin elección guardada sigue al sistema; con el interruptor se fija con <html data-mode="dark|light"> */
+@media (prefers-color-scheme: dark){
+  :root:not([data-mode="light"]){
+    --bg:     #15161a;
+    --panel:  #1c1d22;
+    --ink:    #f2f1ed;
+    --muted:  #9a9ba3;
+    --border: #2b2c32;
+    --accent: #4fb59e;
+  }
+}
+:root[data-mode="dark"]{
+  --bg:     #15161a;
+  --panel:  #1c1d22;
+  --ink:    #f2f1ed;
+  --muted:  #9a9ba3;
+  --border: #2b2c32;
+  --accent: #4fb59e;
+}
+:root[data-mode="light"]{color-scheme:light;}
+:root[data-mode="dark"]{color-scheme:dark;}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html, body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  user-select:none;        /* el texto de la página ya no se puede seleccionar */
+  -webkit-user-select:none;
+}
+.search input{
+  user-select:text;        /* menos la barra de búsqueda: ahí sí se puede seleccionar y copiar */
+  -webkit-user-select:text;
+}
+
+/* ---------- 2. Estructura ---------- */
+main{
+  max-width:760px;
+  margin:0 auto;
+  padding:9vh 24px 8vh;
+}
+@media (min-width:900px){
+  main{max-width:960px; padding:11vh 48px 10vh;}
+}
+@media (min-width:1300px){
+  main{max-width:1180px; padding:12vh 64px 10vh;}
+}
+
+/* Logo + nombre: pegados a la esquina superior izquierda de la pantalla, fuera de la columna
+   central (por eso es absolute y no depende del ancho ni del margen de <main>). */
+:root{--brand-h:clamp(72px, 11vw, 110px);}   /* alto del logo */
+.masthead{
+  position:absolute;
+  top:max(14px, env(safe-area-inset-top, 0px));
+  left:max(18px, env(safe-area-inset-left, 0px));
+  display:flex;
+  align-items:center;
+  z-index:1;
+}
+/* El contenido empieza debajo del logo para que nunca se encimen */
+main{padding-top:calc(var(--brand-h) + 56px);}
+
+.brand{
+  display:flex;
+  align-items:center;
+  color:var(--ink);
+}
+.brand-logo{
+  width:var(--brand-h);
+  height:var(--brand-h);
+  margin-right:clamp(14px, 2.2vw, 22px);
+  object-fit:contain;
+}
+.brand-name{
+  font-family:var(--sans);
+  font-weight:700;
+  font-size:clamp(30px, 5.6vw, 50px);
+  letter-spacing:-.02em;
+  line-height:1;
+  white-space:nowrap;
+}
+
+.hero{margin-bottom:48px;}
+.greeting{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+.clock{
+  font-family:var(--serif);
+  font-weight:340;
+  font-size:clamp(48px, 10vw, 84px);
+  line-height:1;
+  letter-spacing:-1px;
+}
+.clock .ampm{
+  color:var(--muted);
+  font-size:.42em;
+  font-family:var(--sans);
+  font-weight:500;
+  margin-left:6px;
+}
+.date{
+  margin-top:10px;
+  font-size:14px;
+  color:var(--muted);
+}
+
+/* ---------- 3. Barra de búsqueda ---------- */
+.search{
+  --pad-left:  66px;   /* espacio para el botón de buscador */
+  --pad-right: 56px;
+  position:relative;
+  margin-bottom:56px;
+}
+.search input{
+  display:block;
+  width:100%;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:15px var(--pad-right) 15px var(--pad-left);
+  font-family:var(--sans);
+  font-size:15px;
+  color:var(--ink);
+  outline:none;
+  transition:border-color .22s ease, border-radius .22s ease;
+}
+.search input::placeholder{color:var(--muted);}
+.search input:focus{border-color:var(--accent);}
+/* El cursor del sistema se oculta mientras se ve el texto de ayuda (lo controla script_pc.js) */
+.search input.no-caret{caret-color:transparent;}
+
+/* Capa de la animación del texto de ayuda: mismo texto, tamaño y posición que el input */
+.ph-overlay{
+  display:none;
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:calc(var(--pad-left) + 1px);   /* + 1px del borde del input */
+  right:var(--pad-right);
+  align-items:center;
+  overflow:hidden;
+  white-space:pre;
+  pointer-events:none;
+  font-family:var(--sans);
+  font-size:15px;
+  color:var(--muted);
+}
+.ph-overlay.on{display:flex;}
+/* La barrita tiene el mismo color que el cursor del sistema (el color del texto) */
+.ph-bar{
+  flex-shrink:0;
+  width:1px;
+  height:1.25em;
+  background:var(--ink);
+}
+
+/* Botón para elegir buscador */
+.engine-btn{
+  position:absolute;
+  left:10px;
+  top:50%;
+  transform:translateY(-50%);
+  display:flex;
+  align-items:center;
+  gap:3px;
+  padding:4px 7px 4px 5px;
+  background:var(--bg);
+  border:1px solid transparent;
+  border-radius:14px;
+  cursor:pointer;
+  transition:background .15s, border-color .15s;
+}
+.engine-btn:hover{background:var(--border);}
+.engine-btn[aria-expanded="true"]{background:var(--border); border-color:var(--border);}
+.engine-btn .chev{
+  width:13px;
+  height:13px;
+  flex-shrink:0;
+  stroke:var(--muted);
+  transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.engine-btn[aria-expanded="true"] .chev{transform:rotate(179deg);}
+
+/* Icono del buscador (o su inicial si la imagen no carga) */
+.engine-mark{
+  width:20px;
+  height:20px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:5px;
+  background:#4285f4;
+  font-family:var(--serif);
+  font-size:10px;
+  font-weight:480;
+  color:#fff;
+}
+.engine-mark:has(img){background:transparent;}
+.engine-mark.fallback{background:#888;}
+.engine-mark img{width:100%; height:100%; object-fit:contain;}
+
+/* ---------- 4. Menús desplegables ---------- */
+
+/* Elementos de lista compartidos por los dos menús */
+.engine-menu button,
+.history-list button{
+  display:flex;
+  align-items:center;
+  width:100%;
+  background:none;
+  border:none;
+  border-radius:6px;
+  font-family:var(--sans);
+  color:var(--ink);
+  text-align:left;
+  cursor:pointer;
+}
+.engine-menu button:hover,
+.history-list button:hover,
+.history-list button.active,
+.history-list button:focus-visible{background:var(--bg);}
+
+/* Menú de buscadores */
+.engine-menu{
+  position:absolute;
+  top:calc(100% + 8px);
+  left:0;
+  z-index:10;
+  width:210px;
+  padding:6px;
+  list-style:none;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 12px 30px rgba(0,0,0,.12);
+  opacity:0;
+  transform:translateY(-8px) scale(.97);
+  transform-origin:top left;
+  pointer-events:none;
+  transition:opacity .18s ease, transform .18s cubic-bezier(.2,0,.2,1);
+}
+.engine-menu.open{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+.engine-menu button{
+  gap:10px;
+  padding:8px 9px;
+  font-size:13.5px;
+}
+.engine-menu button.current{color:var(--accent); font-weight:600;}
+.engine-menu img{width:16px; height:16px; margin-right:6px;}
+
+/* Búsquedas recientes: el desplegable es la continuación del mismo cuadro de búsqueda */
+.search.expanded input{
+  transition:border-color .3s ease, border-radius .3s cubic-bezier(.22,1,.36,1);
+  border-color:var(--accent);
+  border-bottom-color:var(--border);
+  border-radius:8px 8px 0 0;
+}
+.history-menu{
+  position:absolute;
+  top:100%;
+  left:0;
+  right:0;
+  z-index:9;
+  padding:6px;
+  background:var(--panel);
+  border:1px solid var(--accent);
+  border-top:none;
+  border-radius:0 0 8px 8px;
+  box-shadow:0 14px 24px -10px rgba(0,0,0,.14);
+  visibility:hidden;
+  pointer-events:none;
+  clip-path:inset(0 -30px 100% -30px);
+  transition:clip-path .22s cubic-bezier(.4,0,.2,1), visibility 0s linear .22s;
+}
+.history-menu.open{
+  visibility:visible;
+  pointer-events:auto;
+  clip-path:inset(0 -30px -40px -30px);
+  transition:clip-path .38s cubic-bezier(.22,1,.36,1), visibility 0s;
+}
+/* El contenido aparece un instante después, mientras el cuadro se abre */
+.history-menu > *{
+  opacity:0;
+  transform:translateY(-4px);
+  transition:opacity .12s ease, transform .12s ease;
+}
+.history-menu.open > *{
+  opacity:1;
+  transform:none;
+  transition:opacity .26s ease .07s, transform .34s cubic-bezier(.22,1,.36,1) .07s;
+}
+@media (prefers-reduced-motion:reduce){
+  .history-menu, .history-menu > *, .search input{transition:none !important;}
+}
+
+.history-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:6px 9px 4px;
+  font-size:12px;
+  color:var(--muted);
+}
+.clear-btn{
+  padding:2px 6px;
+  background:none;
+  border:none;
+  border-radius:4px;
+  font-family:var(--sans);
+  font-size:12px;
+  color:var(--muted);
+  cursor:pointer;
+}
+.clear-btn:hover,
+.clear-btn:focus-visible{color:var(--accent);}
+
+.history-list{list-style:none;}
+.history-list button{
+  gap:12px;
+  padding:9px;
+  font-size:14px;
+}
+.h-icon{
+  width:16px;
+  height:16px;
+  flex-shrink:0;
+  stroke:var(--muted);
+}
+.h-query{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.h-engine{
+  flex-shrink:0;
+  font-size:12px;
+  color:var(--faint);
+}
+
+/* ---------- 5. Enlaces ---------- */
+section{margin-bottom:44px;}
+section h2{
+  margin-bottom:14px;
+  font-size:13px;
+  font-weight:500;
+  color:var(--muted);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(148px, 1fr));
+  gap:10px;
+}
+.grid a{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:13px 14px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  text-decoration:none;
+  font-size:14px;
+  font-weight:500;
+  color:var(--ink);
+  transition:border-color .15s, transform .1s;
+}
+.grid a:hover,
+.grid a:focus-visible{border-color:var(--accent);}
+.grid a:active{transform:scale(.98);}
+.grid img{object-fit:contain;}   /* el tamaño de cada icono va en el HTML (width y height) */
+
+/* ---------- 6. Pie de página ---------- */
+footer{
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px;
+  padding-top:22px;
+  border-top:1px solid var(--border);
+  font-size:12px;
+  color:var(--muted);
+}
+footer .signature{
+  font-family:'Share Tech Mono', ui-monospace, monospace;
+  font-size:13px;
+  letter-spacing:2px;
+  color:var(--accent);
+  text-shadow:0 0 6px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* ---------- 7. Fondo de pantalla ---------- */
+/* Cuando hay un fondo elegido, la imagen cubre toda la pantalla y se queda fija al hacer scroll */
+/* El fondo se dibuja en capas fijas detrás de todo (las crea script_pc.js) para poder animar los cambios */
+.bg-stage{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none;}
+.bg-layer{
+  position:absolute; inset:0;
+  background-size:cover; background-position:center; background-repeat:no-repeat;
+  will-change:opacity, transform, filter;
+}
+/* Mientras el fondo cambia, los colores de la página (texto, tarjetas, buscador) pasan suavemente de un estilo al otro */
+body.bg-fading main, body.bg-fading main *, body.bg-fading .fab{
+  transition-property:color, text-shadow, background-color, border-color, box-shadow, backdrop-filter, -webkit-backdrop-filter !important;
+  transition-duration:.8s !important;
+  transition-timing-function:ease !important;
+}
+/* Tarjetas de fondos del panel: se apagan cuando el interruptor está desactivado */
+#bgGrid{transition:opacity .6s ease, filter .6s ease;}
+#bgGrid.bg-off{opacity:.38; filter:saturate(.2);}
+@media (prefers-reduced-motion:reduce){ #bgGrid{transition:none;} }
+
+.fab{
+  position:fixed;
+  right:24px;
+  bottom:24px;
+  z-index:60;   /* por encima del panel, para que nunca quede tapado */
+  width:48px;
+  height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--accent);
+  border:none;
+  border-radius:50%;
+  color:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
+  cursor:pointer;
+  transition:right .3s cubic-bezier(.22,1,.36,1), transform .15s;
+}
+.fab:hover{transform:scale(1.06);}
+/* Con el panel abierto, el botón se recorre para no quedar debajo */
+.fab.shifted{right:304px;}
+.fab-icon{width:20px; height:20px;}
+
+/* El panel "Personalizar" lleva su propia paleta oscura fija, sin importar el tema
+   claro/oscuro de la página: así se ve igual que el panel de personalización de Firefox,
+   que le sirvió de referencia a este diseño. */
+.cz-panel{
+  --cz-bg:     #1c1b22;
+  --cz-panel:  #2b2a33;
+  --cz-border: rgba(255,255,255,.14);
+  --cz-ink:    #f8f8fa;
+  --cz-muted:  #cfcfd8;
+  /* Color fijo del panel: no cambia con el tema de color de la página */
+  --accent:    #e6e6ea;
+
+  position:fixed;
+  top:0;
+  right:-320px;
+  z-index:50;
+  width:300px;
+  height:100%;
+  padding:20px 18px 28px;
+  padding-top:calc(20px + env(safe-area-inset-top, 0px));
+  overflow-y:auto;
+  background:var(--cz-bg);
+  color:var(--cz-ink);
+  border-left:1px solid var(--cz-border);
+  box-shadow:-12px 0 30px rgba(0,0,0,.35);
+  font-family:var(--sans);
+  transition:right .3s cubic-bezier(.22,1,.36,1);
+}
+.cz-panel.open{right:0;}
+
+.cz-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+  font-size:16px;
+  font-weight:700;
+}
+.cz-close{
+  padding:2px 8px;
+  background:none;
+  border:none;
+  border-radius:4px;
+  font-size:20px;
+  line-height:1;
+  color:var(--cz-muted);
+  cursor:pointer;
+}
+.cz-close:hover{background:rgba(255,255,255,.08); color:var(--cz-ink);}
+
+.cz-section{padding:16px 0; border-top:1px solid var(--cz-border);}
+.cz-section:first-of-type{border-top:none; padding-top:0;}
+.cz-section h4{margin-bottom:12px; font-size:13px; font-weight:700;}
+
+.cz-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  font-size:13.5px;
+}
+.cz-row + .cz-row{margin-top:14px;}
+.cz-row.cz-sub{color:var(--cz-muted); font-size:13px;}
+
+
+/* Menú desplegable con forma de píldora, para "Número de filas" */
+.cz-select{
+  padding:5px 12px;
+  background:transparent;
+  border:1px solid var(--cz-border);
+  border-radius:999px;
+  font-family:var(--sans);
+  font-size:13px;
+  color:var(--cz-ink);
+  cursor:pointer;
+}
+.cz-select:focus-visible{outline:2px solid var(--accent);}
+
+/* Muestras de color del tema */
+.cz-swatches{display:flex; flex-wrap:wrap; gap:10px;}
+.cz-swatch{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:2px solid transparent;
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+}
+.cz-swatch.default{
+  background:conic-gradient(from 200deg, #7b5cff, #d65c8a, #f2a33c, #1e9e7c, #3d6fe0, #7b5cff);
+}
+.cz-swatch.selected{border-color:var(--cz-ink); box-shadow:0 0 0 2px var(--cz-bg), 0 0 0 3px var(--cz-ink);}
+
+/* Botón "+" de más colores y su paleta */
+.cz-swatch.custom{
+  display:grid; place-items:center;
+  background:transparent;
+  border:2px dashed rgba(255,255,255,.4);
+  color:var(--cz-muted);
+}
+.cz-swatch.custom svg{width:16px; height:16px;}
+.cz-swatch.custom svg{transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
+.cz-swatch.custom[aria-expanded="true"] svg{transform:rotate(135deg);}
+.cz-swatch.custom:hover{color:var(--cz-ink); border-color:var(--cz-ink);}
+.cz-swatch.custom.has-color{border-style:solid; border-color:transparent; color:#fff;}
+.cz-swatch.custom.has-color svg{filter:drop-shadow(0 0 2px rgba(0,0,0,.6));}
+.cz-swatch.custom.selected{border-color:var(--cz-ink);}
+.cz-palette{
+  display:grid;
+  grid-template-columns:repeat(10, 1fr);
+  gap:5px;
+  margin-top:12px;
+  padding:10px;
+  background:var(--cz-panel);
+  border:1px solid var(--cz-border);
+  border-radius:10px;
+}
+.cz-palette[hidden]{display:none;}
+.cz-pcolor{
+  aspect-ratio:1;
+  width:100%;
+  padding:0;
+  border:2px solid transparent;
+  border-radius:50%;
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);
+  transition:transform .12s ease;
+}
+.cz-pcolor:hover{transform:scale(1.18);}
+.cz-pcolor.selected{border-color:var(--cz-ink); box-shadow:0 0 0 1px var(--cz-bg);}
+
+/* Contenedor de los fondos del panel */
+.bg-grid{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:10px;
+}
+/* ---------- 8. Liquid Glass ---------- */
+/* Todo lo de esta sección va al final a propósito: sobrescribe los colores sólidos de arriba.
+   Para quitar el efecto, borra esta sección completa. */
+:root{
+  --glass-bg:         rgba(255,255,255,.38);
+  --glass-bg-hover:   rgba(255,255,255,.52);
+  --glass-menu-bg:    rgba(255,255,255,.72);   /* menús flotantes: más opacos para leerse sobre las tarjetas */
+  --glass-item-hover: rgba(255,255,255,.35);
+  --glass-border:     rgba(255,255,255,.55);
+  --glass-focus:      rgba(255,255,255,.85);   /* borde activo (foco, hover): neutro en vez del color de acento */
+  --glass-hi:         rgba(255,255,255,.70);   /* brillo del borde superior */
+  --glass-shadow:     0 8px 32px rgba(31,38,80,.18);
+  --glass-blur:       blur(18px) saturate(180%);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-mode="light"]){
+    --glass-bg:         rgba(28,29,34,.34);
+    --glass-bg-hover:   rgba(48,50,58,.48);
+    --glass-menu-bg:    rgba(28,29,34,.74);
+    --glass-item-hover: rgba(255,255,255,.10);
+    --glass-border:     rgba(255,255,255,.16);
+    --glass-focus:      rgba(255,255,255,.50);
+    --glass-hi:         rgba(255,255,255,.28);
+    --glass-shadow:     0 8px 32px rgba(0,0,0,.35);
+  }
+}
+:root[data-mode="dark"]{
+  --glass-bg:         rgba(28,29,34,.34);
+  --glass-bg-hover:   rgba(48,50,58,.48);
+  --glass-menu-bg:    rgba(28,29,34,.74);
+  --glass-item-hover: rgba(255,255,255,.10);
+  --glass-border:     rgba(255,255,255,.16);
+  --glass-focus:      rgba(255,255,255,.50);
+  --glass-hi:         rgba(255,255,255,.28);
+  --glass-shadow:     0 8px 32px rgba(0,0,0,.35);
+}
+
+/* Superficies de cristal: translúcidas, con desenfoque y bordes que atrapan la luz */
+.search input,
+.grid a,
+.engine-menu,
+.history-menu{
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur);
+  backdrop-filter:var(--glass-blur);
+  border-color:var(--glass-border);
+  box-shadow:
+    var(--glass-shadow),
+    inset 0 1px 0 var(--glass-hi),
+    inset 0 -1px 0 rgba(255,255,255,.06),
+    inset 0 0 22px rgba(255,255,255,.05);
+}
+.engine-menu,
+.history-menu{background:var(--glass-menu-bg);}
+.history-menu{
+  border-color:var(--glass-focus);   /* sigue pareciendo parte de la barra al expandirse */
+  /* sin brillo superior: ahí el menú se une con la barra y se vería una línea */
+  box-shadow:var(--glass-shadow), inset 0 -1px 0 rgba(255,255,255,.06);
+}
+
+/* El desenfoque de la barra la pone por encima del botón de buscador y lo tapaba:
+   se sube el botón para que se pueda clicar */
+.engine-btn{z-index:2;}
+
+/* Tarjetas: reflejo diagonal suave */
+.grid a{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  transition:border-color .15s, transform .1s, background .2s;
+}
+.grid a::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:linear-gradient(135deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 45%);
+}
+.grid a:hover,
+.grid a:focus-visible{background:var(--glass-bg-hover);}
+
+/* Botón de buscador y elementos de los menús */
+.engine-btn{background:rgba(255,255,255,.12);}
+.engine-btn:hover,
+.engine-btn[aria-expanded="true"]{background:var(--glass-item-hover);}
+.engine-menu button:hover,
+.history-list button:hover,
+.history-list button.active,
+.history-list button:focus-visible{background:var(--glass-item-hover);}
+
+/* Botón flotante: cristal teñido con el color de acento */
+.fab{
+  background:color-mix(in srgb, var(--accent) 65%, transparent);
+  -webkit-backdrop-filter:var(--glass-blur);
+  backdrop-filter:var(--glass-blur);
+  border:1px solid var(--glass-border);
+  box-shadow:0 8px 24px rgba(0,0,0,.25), inset 0 1px 0 var(--glass-hi);
+}
+
+/* Con un fondo elegido, el texto suelto necesita contraste sobre la imagen */
+body.has-bg .clock{color:#fff; text-shadow:0 2px 18px rgba(0,0,0,.35);}
+body.has-bg .greeting,
+body.has-bg .date,
+body.has-bg .clock .ampm,
+body.has-bg section h2,
+body.has-bg footer{
+  color:rgba(255,255,255,.92);
+  text-shadow:0 1px 10px rgba(0,0,0,.55);
+}
+body.has-bg footer{border-color:rgba(255,255,255,.3);}
+body.has-bg .brand{color:#fff; text-shadow:0 1px 12px rgba(0,0,0,.55);}
+body.has-bg .brand-logo{filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));}
+
+/* Si el navegador no soporta desenfoque, se usa un fondo más sólido para no perder legibilidad */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--glass-bg:rgba(255,255,255,.85);}
+  @media (prefers-color-scheme: dark){:root:not([data-mode="light"]){--glass-bg:rgba(28,29,34,.88);}}
+  :root[data-mode="dark"]{--glass-bg:rgba(28,29,34,.88);}
+}
+/* Quien pide menos transparencia en su sistema la recibe */
+@media (prefers-reduced-transparency: reduce){
+  :root{--glass-bg:var(--panel);}
+  .search input,.grid a,.engine-menu,.history-menu,.fab{
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+}
+
+/* Bordes activos en blanco translúcido (antes eran del color de acento) */
+.search input:focus{border-color:var(--glass-focus);}
+.search.expanded input{
+  border-color:var(--glass-focus);
+  border-bottom-color:var(--glass-border);
+}
+.grid a:hover,
+.grid a:focus-visible{border-color:var(--glass-focus);}
+
+/* Acento neutro: reemplaza el verde en la firma, el botón flotante, el buscador marcado y los enlaces "Borrar" */
+:root{--accent:#4a4a52; --accent-base:#4a4a52;}
+@media (prefers-color-scheme: dark){
+  :root:not([data-mode="light"]){--accent:#e6e6ea; --accent-base:#e6e6ea;}
+}
+:root[data-mode="dark"]{--accent:#e6e6ea; --accent-base:#e6e6ea;}
+/* La pantalla de carga (con su estela y onda) no sigue el tema de color: usa siempre el acento original */
+.intro, .intro-trail, .land-ripple{--accent:var(--accent-base);}
+.fab{
+  background:var(--glass-bg-hover);
+  color:var(--ink);
+}
+body.has-bg footer .signature{color:#fff;}
+
+/* Sin href el navegador ya no pone la manita: se agrega a mano */
+.grid a{cursor:pointer;}
+
+/* Sin fondo de pantalla ("Ninguno") no hay nada que desenfocar: el Liquid Glass se apaga
+   y vuelven las superficies sólidas. El efecto solo se ve cuando body tiene la clase has-bg. */
+body:not(.has-bg){
+  --glass-bg:         var(--panel);
+  --glass-bg-hover:   var(--panel);
+  --glass-menu-bg:    var(--panel);
+  --glass-item-hover: var(--bg);
+  --glass-border:     var(--border);
+  --glass-focus:      var(--accent);
+  --glass-blur:       none;
+}
+body:not(.has-bg) .grid a::before{display:none;}
+body:not(.has-bg) .search input,
+body:not(.has-bg) .grid a,
+body:not(.has-bg) .fab{box-shadow:none;}
+body:not(.has-bg) .fab{box-shadow:0 8px 20px rgba(0,0,0,.25);}
+body:not(.has-bg) .engine-menu{box-shadow:0 12px 30px rgba(0,0,0,.12);}
+body:not(.has-bg) .history-menu{box-shadow:0 14px 24px -10px rgba(0,0,0,.14);}
+body:not(.has-bg) .engine-btn{background:var(--bg);}
+body:not(.has-bg) .engine-btn:hover,
+body:not(.has-bg) .engine-btn[aria-expanded="true"]{background:var(--border);}
+
+/* Icono del buscador: cada icono es una capa para poder animar el cambio (ver renderEngineMark en script_pc.js) */
+.engine-mark,
+.engine-mark.fallback{
+  position:relative;
+  background:transparent;
+}
+.engine-mark .mark{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:5px;
+}
+.engine-mark .mark.fallback{background:#888;}   /* inicial del buscador si su imagen no carga */
+
+/* ---------- 9. Animación de las tarjetas al pasar el mouse ---------- */
+/* Se levantan un poco, el icono hace un giro con rebote y un destello de luz sigue al cursor
+   (la posición --mx y --my la pone script_pc.js). */
+.grid a{
+  --mx:50%;
+  --my:50%;
+  --spot:rgba(255,255,255,.30);                 /* color del destello sobre el cristal */
+  --lift:0 14px 30px rgba(31,38,80,.22);        /* sombra al levantarse */
+  transition:
+    transform .4s cubic-bezier(.22,1,.36,1),
+    border-color .2s,
+    background .25s,
+    box-shadow .4s ease;
+}
+body:not(.has-bg) .grid a{--spot:rgba(0,0,0,.05);}
+@media (prefers-color-scheme: dark){
+  :root:not([data-mode="light"]) .grid a{--lift:0 14px 30px rgba(0,0,0,.42);}
+  :root:not([data-mode="light"]) body:not(.has-bg) .grid a{--spot:rgba(255,255,255,.08);}
+}
+:root[data-mode="dark"] .grid a{--lift:0 14px 30px rgba(0,0,0,.42);}
+:root[data-mode="dark"] body:not(.has-bg) .grid a{--spot:rgba(255,255,255,.08);}
+
+.grid a::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  opacity:0;
+  background:radial-gradient(circle 110px at var(--mx) var(--my), var(--spot), transparent 70%);
+  transition:opacity .3s ease;
+}
+.grid img{transition:transform .45s cubic-bezier(.34,1.56,.64,1);}   /* la curva da el rebote */
+
+/* Teclado (Tab): mismo efecto que el mouse */
+.grid a:focus-visible{
+  transform:translateY(-4px) scale(1.025);
+  box-shadow:var(--lift), inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 rgba(255,255,255,.06);
+}
+.grid a:focus-visible::after{opacity:1;}
+.grid a:focus-visible img{transform:scale(1.14) rotate(-5deg);}
+
+/* Mouse: solo en dispositivos con hover (en el celular no se queda "pegado" tras tocar) */
+@media (hover:hover){
+  .grid a:hover{
+    transform:translateY(-4px) scale(1.025);
+    box-shadow:var(--lift), inset 0 1px 0 var(--glass-hi), inset 0 -1px 0 rgba(255,255,255,.06);
+  }
+  body:not(.has-bg) .grid a:hover{box-shadow:var(--lift);}
+  .grid a:hover::after{opacity:1;}
+  .grid a:hover img{transform:scale(1.14) rotate(-5deg);}
+}
+
+/* Al hacer clic se hunde un poco */
+.grid a:active{
+  transform:translateY(0) scale(.97);
+  transition-duration:.12s;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .grid a, .grid img, .grid a::after{transition:none !important;}
+  .grid a:hover, .grid a:focus-visible, .grid a:active,
+  .grid a:hover img, .grid a:focus-visible img{transform:none;}
+}
+
+/* ---------- 10. Animación de los menús (buscadores y recientes) ---------- */
+/* Al abrirse, las filas entran una tras otra. Al pasar el mouse, la fila se desliza,
+   el icono da un giro con rebote y la fila se hunde un poco al hacer clic. */
+@keyframes menuItemIn{
+  from{opacity:0; transform:translateX(-12px) scale(.97);}
+}
+/* "backwards": la animación solo manda mientras espera y corre; al terminar, el hover puede mover la fila */
+.engine-menu.open li{
+  animation:menuItemIn .42s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay:calc(70ms + var(--i, 0) * 34ms);
+}
+.history-list li.enter{
+  animation:menuItemIn .42s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay:calc(130ms + var(--i, 0) * 45ms);
+}
+
+.engine-menu button,
+.history-list button{
+  transition:background .18s ease, transform .3s cubic-bezier(.22,1,.36,1), color .18s ease;
+}
+.engine-menu img{transition:transform .45s cubic-bezier(.34,1.56,.64,1);}
+.h-icon{transition:transform .5s cubic-bezier(.34,1.56,.64,1), stroke .2s ease;}
+.h-engine{transition:color .2s ease;}
+.clear-btn{transition:color .2s ease, background .2s ease;}
+.clear-btn:hover{background:var(--glass-item-hover);}
+
+/* Teclado (flechas) y mouse: mismo efecto */
+.history-list button.active,
+.engine-menu button:focus-visible{transform:translateX(4px);}
+.history-list button.active .h-icon{transform:rotate(-40deg) scale(1.15); stroke:var(--ink);}
+.history-list button.active .h-engine{color:var(--muted);}
+.engine-menu button:focus-visible img{transform:scale(1.2) rotate(-8deg);}
+
+@media (hover:hover){
+  .engine-menu button:hover,
+  .history-list button:hover{transform:translateX(4px);}
+  .engine-menu button:hover img{transform:scale(1.2) rotate(-8deg);}
+  .history-list button:hover .h-icon{transform:rotate(-40deg) scale(1.15); stroke:var(--ink);}
+  .history-list button:hover .h-engine{color:var(--muted);}
+}
+.engine-menu button:active,
+.history-list button:active{transform:translateX(2px) scale(.98); transition-duration:.1s;}
+
+@media (prefers-reduced-motion: reduce){
+  .engine-menu.open li, .history-list li.enter{animation:none;}
+  .engine-menu button, .history-list button, .engine-menu img, .h-icon{transition:none !important;}
+  .engine-menu button:hover, .history-list button:hover, .history-list button.active,
+  .engine-menu button:focus-visible, .engine-menu button:active, .history-list button:active,
+  .engine-menu button:hover img, .history-list button:hover .h-icon, .history-list button.active .h-icon{transform:none;}
+}
+
+/* ---------- 11. Autocompletado ---------- */
+.history-head.hidden{display:none;}
+.h-query b{font-weight:600;}
+
+/* ---------- 12. Clima ---------- */
+.hero{position:relative;}
+.weather{
+  display:none;
+  position:absolute;
+  top:0;
+  right:0;
+  flex-direction:column;
+  align-items:flex-end;
+  padding:8px 10px;
+  margin:-8px -10px;
+  background:none;
+  border:none;
+  border-radius:12px;
+  font-family:var(--sans);
+  color:var(--ink);
+  text-align:right;
+  cursor:pointer;
+  transition:background .2s ease;
+}
+.weather.ready{display:flex; animation:weatherIn .6s cubic-bezier(.22,1,.36,1) backwards;}
+.weather:hover,
+.weather:focus-visible{background:var(--glass-item-hover);}
+@keyframes weatherIn{from{opacity:0; transform:translateY(8px);}}
+.w-top{display:flex; align-items:center; gap:10px;}
+.w-icon{font-size:34px; line-height:1;}
+.w-temp{
+  font-family:var(--serif);
+  font-weight:340;
+  font-size:clamp(36px, 6vw, 52px);
+  line-height:1;
+  letter-spacing:-1px;
+}
+.w-desc{margin-top:8px; font-size:14px;}
+.w-meta{margin-top:3px; font-size:12px; color:var(--muted);}
+@media (max-width:640px){
+  /* Pantalla reducida: el clima se queda a la derecha, a la altura de la hora */
+  .hero{display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:12px; align-items:start;}
+  .greeting{grid-column:1 / -1; grid-row:1;}
+  .clock{grid-column:1; grid-row:2; min-width:0;}
+  .date{grid-column:1; grid-row:3;}
+  .weather.ready{
+    position:static; grid-column:2; grid-row:2 / span 2; align-self:start; justify-self:end;
+    align-items:flex-end; text-align:right; max-width:46vw; margin:-4px -10px 0 0;
+  }
+  .w-top{gap:6px;}
+  .w-icon{font-size:26px;}
+  .w-temp{font-size:clamp(28px, 8vw, 40px);}
+  .w-desc{margin-top:4px; font-size:13px;}
+  .w-meta{font-size:11px; white-space:normal;}
+}
+@media (max-width:420px){ .w-detail, #wDetail{display:none;} }
+body.has-bg .weather{color:#fff; text-shadow:0 1px 10px rgba(0,0,0,.55);}
+body.has-bg .w-meta{color:rgba(255,255,255,.88);}
+@media (prefers-reduced-motion:reduce){
+  .weather, .weather.ready{animation:none; transition:none;}
+}
+
+
+/* ---------- 13. Accesos directos ---------- */
+/* Cada acceso es un rectángulo bajo y alargado: icono + nombre en una sola línea */
+.shortcuts{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:-46px 0 56px;   /* pegados a la barra de búsqueda (que deja 56px debajo): queda ~10px */
+  overflow:hidden;
+  transition:max-height .25s ease;
+}
+/* Apagados desde "Personalizar" */
+.shortcuts.cz-hidden{display:none;}
+.sc-item{position:relative; max-width:100%;}
+.shortcut,
+.sc-add{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  height:38px;
+  max-width:210px;
+  padding:0 14px 0 10px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:9px;
+  font-family:var(--sans);
+  font-size:13px;
+  color:var(--ink);
+  text-decoration:none;
+  cursor:pointer;
+  outline:none;
+  transition:transform .3s cubic-bezier(.22,1,.36,1), border-color .2s ease, box-shadow .25s ease, color .2s ease;
+}
+.shortcut:focus-visible,
+.sc-add:focus-visible{box-shadow:0 0 0 2px var(--accent);}
+
+.sc-icon{
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+  width:20px;
+  height:20px;
+}
+.sc-icon > *{grid-area:1 / 1;}
+.sc-icon img{width:20px; height:20px; object-fit:contain; border-radius:4px;}
+/* La inicial se ve mientras el icono carga (o si no carga) */
+.sc-letter{
+  display:grid;
+  place-items:center;
+  width:20px;
+  height:20px;
+  background:var(--bg);
+  border-radius:5px;
+  font-family:var(--serif);
+  font-size:12px;
+  font-weight:480;
+  color:var(--ink);
+}
+.sc-icon.loaded .sc-letter{display:none;}
+.sc-name{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* "+ Agregar": mismo rectángulo, con borde punteado */
+.sc-add{background:transparent; border-style:dashed; color:var(--muted);}
+.sc-add .sc-icon svg{width:16px; height:16px; stroke:currentColor;}
+
+@media (hover:hover){
+  .shortcut:hover,
+  .sc-add:hover{transform:translateY(-2px); border-color:var(--accent); box-shadow:0 8px 18px -8px rgba(0,0,0,.28);}
+  .sc-add:hover{color:var(--accent);}
+}
+.shortcut:active,
+.sc-add:active{transform:scale(.97); transition-duration:.1s;}
+
+/* "×" para quitar: aparece en la esquina al pasar el mouse (en pantallas táctiles siempre se ve) */
+.sc-remove{
+  position:absolute;
+  top:-7px;
+  right:-7px;
+  width:18px;
+  height:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:50%;
+  font-family:var(--sans);
+  font-size:13px;
+  line-height:1;
+  color:var(--muted);
+  cursor:pointer;
+  opacity:0;
+  transform:scale(.7);
+  transition:opacity .15s ease, transform .25s cubic-bezier(.34,1.56,.64,1), background .15s ease, color .15s ease;
+}
+.sc-item:hover .sc-remove,
+.sc-remove:focus-visible{opacity:1; transform:none;}
+@media (hover:none){ .sc-remove{opacity:.85; transform:none;} }
+.sc-remove:hover{background:#d94b4b; border-color:#d94b4b; color:#fff;}
+
+@keyframes scIn{from{opacity:0; transform:translateY(10px) scale(.9);}}
+.sc-item.enter{
+  animation:scIn .5s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay:calc(120ms + var(--i, 0) * 45ms);
+}
+
+/* Con un fondo elegido: cristal, como las demás tarjetas */
+body.has-bg .shortcut,
+body.has-bg .sc-add{
+  background:var(--glass-bg);
+  border-color:var(--glass-border);
+  -webkit-backdrop-filter:var(--glass-blur);
+  backdrop-filter:var(--glass-blur);
+  box-shadow:var(--glass-shadow), inset 0 1px 0 var(--glass-hi);
+  color:var(--ink);
+}
+body.has-bg .shortcut:focus-visible,
+body.has-bg .sc-add:focus-visible{box-shadow:0 0 0 2px var(--glass-focus);}
+
+/* Cuadro para agregar */
+.sc-dialog{
+  margin:auto;
+  width:min(380px, calc(100vw - 32px));
+  padding:0;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:0 24px 60px rgba(0,0,0,.3);
+  font-family:var(--sans);
+  color:var(--ink);
+}
+.sc-dialog::backdrop{background:rgba(0,0,0,.35); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);}
+.sc-dialog[open]{animation:scDialogIn .35s cubic-bezier(.22,1,.36,1);}
+@keyframes scDialogIn{from{opacity:0; transform:translateY(12px) scale(.97);}}
+.sc-form{display:flex; flex-direction:column; gap:14px; padding:22px;}
+.sc-form h3{font-family:var(--serif); font-weight:480; font-size:20px;}
+.sc-form label{display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted);}
+.sc-form input{
+  padding:11px 12px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:8px;
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--ink);
+  outline:none;
+  user-select:text;
+  -webkit-user-select:text;
+  transition:border-color .2s ease;
+}
+.sc-form input:focus{border-color:var(--accent);}
+.sc-error{min-height:16px; font-size:12px; color:#d94b4b;}
+.sc-actions{display:flex; justify-content:flex-end; gap:8px;}
+.sc-btn{
+  padding:9px 16px;
+  background:none;
+  border:1px solid var(--border);
+  border-radius:8px;
+  font-family:var(--sans);
+  font-size:13px;
+  color:var(--ink);
+  cursor:pointer;
+  transition:background .15s ease, border-color .15s ease;
+}
+.sc-btn:hover{background:var(--bg);}
+.sc-btn.primary{background:var(--accent); border-color:var(--accent); color:var(--bg);}
+.sc-btn.primary:hover{background:var(--accent); filter:brightness(1.1);}
+@media (prefers-reduced-motion:reduce){
+  .sc-item.enter, .sc-dialog[open]{animation:none;}
+  .shortcut, .sc-add, .sc-remove{transition:none;}
+}
+
+
+/* ---------- 14. Buscador rápido (Ctrl + V) ---------- */
+:root{--qs-dim:rgba(20,20,26,.30);}
+@media (prefers-color-scheme: dark){ :root:not([data-mode="light"]){--qs-dim:rgba(0,0,0,.50);} }
+:root[data-mode="dark"]{--qs-dim:rgba(0,0,0,.50);}
+
+/* Capa a pantalla completa: oscurece y desenfoca todo lo que hay detrás */
+.qs{
+  position:fixed;
+  inset:0;
+  z-index:200;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:max(14vh, env(safe-area-inset-top, 0px)) 16px 16px;
+  background:transparent;
+  -webkit-backdrop-filter:blur(0px);
+  backdrop-filter:blur(0px);
+  visibility:hidden;
+  pointer-events:none;
+  transition:background .3s ease, backdrop-filter .3s ease, -webkit-backdrop-filter .3s ease, visibility 0s linear .3s;
+}
+.qs.open{
+  background:var(--qs-dim);
+  -webkit-backdrop-filter:blur(16px) saturate(120%);
+  backdrop-filter:blur(16px) saturate(120%);
+  visibility:visible;
+  pointer-events:auto;
+  transition:background .3s ease, backdrop-filter .3s ease, -webkit-backdrop-filter .3s ease, visibility 0s;
+}
+body.qs-open{overflow:hidden;}
+
+.qs-box{
+  width:min(620px, 100%);
+  max-height:calc(100vh - 14vh - 32px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:0 30px 80px rgba(0,0,0,.35);
+  opacity:0;
+  transform:translateY(-12px) scale(.97);
+  transition:opacity .15s ease, transform .15s ease;
+}
+.qs.open .qs-box{
+  opacity:1;
+  transform:none;
+  transition:opacity .28s ease .05s, transform .4s cubic-bezier(.22,1,.36,1) .05s;
+}
+
+.qs-bar{display:flex; align-items:center; gap:12px; padding:16px 18px;}
+.qs-icon{width:20px; height:20px; flex-shrink:0; color:var(--muted);}
+.qs-bar input{
+  flex:1;
+  min-width:0;
+  background:none;
+  border:none;
+  outline:none;
+  font-family:var(--sans);
+  font-size:17px;
+  color:var(--ink);
+  user-select:text;
+  -webkit-user-select:text;
+}
+.qs-bar input::placeholder{color:var(--muted);}
+.qs kbd{
+  display:inline-block;
+  min-width:20px;
+  padding:2px 6px;
+  border:1px solid var(--border);
+  border-radius:5px;
+  font-family:var(--sans);
+  font-size:11px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.qs-list{list-style:none; padding:6px; overflow-y:auto; border-top:1px solid var(--border);}
+.qs-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:10px 12px;
+  background:none;
+  border:none;
+  border-radius:10px;
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--ink);
+  text-align:left;
+  cursor:pointer;
+}
+.qs-item.active{background:color-mix(in srgb, var(--accent) 14%, transparent);}
+.qs-ico{display:flex; align-items:center; justify-content:center; flex-shrink:0; width:20px; height:20px;}
+.qs-ico img{width:20px; height:20px; object-fit:contain; border-radius:4px;}
+.qs-ico .h-icon{width:16px; height:16px;}
+.qs-label{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.qs-meta{flex-shrink:0; font-size:12px; color:var(--muted);}
+.qs-empty{padding:18px 12px; font-size:13px; color:var(--muted); text-align:center;}
+
+.qs-foot{
+  display:flex;
+  gap:18px;
+  padding:9px 18px;
+  border-top:1px solid var(--border);
+  font-size:12px;
+  color:var(--muted);
+}
+.qs-foot kbd{margin-right:3px;}
+@media (max-width:640px){ .qs-foot{display:none;} }
+@media (prefers-reduced-motion:reduce){
+  .qs, .qs.open, .qs-box, .qs.open .qs-box{transition:none;}
+}
+
+
+/* ---------- 15. Pantalla de inicio ---------- */
+/* Mientras dura la intro, el logo y el nombre reales esperan (el logo "aterriza" en su lugar) */
+body.intro-active{overflow:hidden;}
+body.intro-active .brand-logo{visibility:hidden;}
+body.intro-name .brand-name{opacity:0; transform:translateX(-16px);}
+.brand-name{transition:opacity .6s ease, transform .7s cubic-bezier(.22,1,.36,1);}
+
+.intro{
+  position:fixed;
+  inset:0;
+  z-index:300;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg);
+  transition:background .7s ease;
+}
+.intro.is-fading{background:transparent;}
+
+
+.intro-center{display:flex; flex-direction:column; align-items:center; gap:22px;}
+.intro-stage{position:relative; display:grid; place-items:center; width:190px; height:190px;}
+.intro.is-done .intro-stage{animation:introPop .6s cubic-bezier(.34,1.56,.64,1);}
+@keyframes introPop{40%{transform:scale(1.08);}}
+
+.intro-ring{position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg);}
+.intro-ring circle{fill:none; stroke-width:2.5;}
+.ring-bg{stroke:var(--border);}
+.ring-fg{
+  stroke:var(--accent);
+  stroke-linecap:round;
+  stroke-dasharray:339.292;
+  stroke-dashoffset:339.292;
+  transition:filter .3s ease;
+}
+.intro.is-done .ring-fg{filter:drop-shadow(0 0 6px var(--accent));}
+
+.intro-logo{
+  width:120px;
+  height:120px;
+  object-fit:contain;
+  animation:introGlow 1.8s ease-in-out infinite;
+}
+@keyframes introGlow{
+  0%, 100%{filter:drop-shadow(0 0 0 transparent);}
+  50%{filter:drop-shadow(0 6px 18px color-mix(in srgb, var(--accent) 55%, transparent));}
+}
+.intro.is-leaving .intro-logo{animation:none;}
+
+/* Check que aparece al terminar de cargar */
+.intro-check{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  background:var(--accent);
+  border-radius:50%;
+  color:var(--bg);
+  transform:scale(0);
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1) .1s, opacity .3s ease;
+}
+.intro-check svg{width:18px; height:18px;}
+.intro.is-done .intro-check{transform:scale(1);}
+
+.intro-text{
+  min-height:18px;
+  font-size:13px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+  transition:color .3s ease, opacity .3s ease;
+}
+.intro.is-done .intro-text{color:var(--accent);}
+.intro.is-leaving .intro-ring,
+.intro.is-leaving .intro-check,
+.intro.is-leaving .intro-steps,
+.intro.is-leaving .intro-text{opacity:0; transition:opacity .3s ease;}
+.intro-ring{transition:opacity .3s ease;}
+
+/* Estela del águila y onda al aterrizar */
+.intro-trail{
+  position:fixed;
+  z-index:301;
+  pointer-events:none;
+  background:var(--accent);
+  border-radius:50%;
+  box-shadow:0 0 10px var(--accent);
+  animation:trailFade .75s ease-out forwards;
+}
+@keyframes trailFade{to{opacity:0; transform:translate(var(--tx), var(--ty)) scale(.2);}}
+.land-ripple{
+  position:fixed;
+  z-index:250;
+  pointer-events:none;
+  border:2px solid var(--accent);
+  border-radius:50%;
+  animation:landRipple .9s cubic-bezier(.22, 1, .36, 1) forwards;
+}
+@keyframes landRipple{from{opacity:.9; transform:scale(.7);} to{opacity:0; transform:scale(2.3);}}
+body.intro-landed .brand-logo{animation:landPulse .6s cubic-bezier(.34, 1.56, .64, 1);}
+@keyframes landPulse{40%{transform:scale(1.12);}}
+
+/* Lista de pasos: HTML, CSS, JavaScript e Imágenes */
+.intro-steps{
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  width:220px;
+  transition:opacity .3s ease;
+}
+.intro-steps li{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:5px 10px;
+  font-size:14px;
+  color:var(--muted);
+  opacity:.45;
+  transition:opacity .3s ease, color .3s ease;
+}
+.intro-steps li.active,
+.intro-steps li.done{opacity:1; color:var(--ink);}
+.st-ico{position:relative; flex-shrink:0; width:18px; height:18px;}
+.st-dot{position:absolute; left:6px; top:6px; width:6px; height:6px; background:currentColor; border-radius:50%; opacity:.6; transition:opacity .2s ease;}
+.st-spin{
+  position:absolute;
+  inset:1px;
+  border:2px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  opacity:0;
+  animation:introSpin .7s linear infinite;
+}
+.st-check{position:absolute; inset:0; color:var(--accent); opacity:0; transform:scale(.4); transition:opacity .2s ease, transform .35s cubic-bezier(.34,1.56,.64,1);}
+.intro-steps li.active .st-dot,
+.intro-steps li.done .st-dot{opacity:0;}
+.intro-steps li.active .st-spin{opacity:1;}
+.intro-steps li.done .st-check{opacity:1; transform:none;}
+.st-name{flex:1; font-weight:500;}
+.st-detail{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;}
+@keyframes introSpin{to{transform:rotate(360deg);}}
+.st-x{position:absolute; inset:0; color:#d94b4b; opacity:0; transform:scale(.4); transition:opacity .2s ease, transform .35s cubic-bezier(.34,1.56,.64,1);}
+.intro-steps li.failed{opacity:1; color:#d94b4b;}
+.intro-steps li.failed .st-dot{opacity:0;}
+.intro-steps li.failed .st-x{opacity:1; transform:none;}
+.intro.has-error .ring-fg{stroke:#d94b4b;}
+.intro.has-error .intro-text{color:#d94b4b;}
+
+/* Barra fina de cada paso */
+.st-bar{flex-basis:100%; height:2px; margin-left:28px; background:var(--border); border-radius:2px; overflow:hidden; opacity:0; transition:opacity .3s ease;}
+.st-bar i{display:block; width:100%; height:100%; background:var(--accent); transform-origin:left; transform:scaleX(0);}
+.intro-steps li.active .st-bar{opacity:1;}
+.intro-steps li.done .st-bar,
+.intro-steps li.failed .st-bar{opacity:.35;}
+.intro-steps li.failed .st-bar i{background:#d94b4b;}
+
+/* Al terminar la intro, el resto de la página aparece escalonado */
+@keyframes introRise{from{opacity:0; transform:translateY(16px);}}
+body.intro-reveal .hero,
+body.intro-reveal .search,
+body.intro-reveal .shortcuts{animation:introRise .9s cubic-bezier(.22,1,.36,1) backwards;}
+body.intro-reveal .hero{animation-delay:.1s;}
+body.intro-reveal .search{animation-delay:.22s;}
+body.intro-reveal .shortcuts{animation-delay:.34s;}
+
+/* ---------- Tema de color (Personalizar → Apariencia) ----------
+   El color elegido SOLO pinta contornos: las tarjetas, el buscador al hacer clic, el
+   historial de búsquedas y el menú de buscadores. No toca ningún texto. Con el tema "por defecto" no se aplica nada. */
+html.has-theme body .grid a,
+html.has-theme body .shortcut,
+html.has-theme body .sc-add{border-color:var(--theme-color);}
+html.has-theme body .search input:focus,
+html.has-theme body .search.expanded input{border-color:var(--theme-color);}
+html.has-theme body .search.expanded input{border-bottom-color:var(--glass-border);}
+html.has-theme body .history-menu,
+html.has-theme body .engine-menu{border-color:var(--theme-color);}
+
+/* Menú desplegable animado de "Número de filas" (Personalizar → Accesos directos) */
+.cz-dd{position:relative; display:inline-block;}
+.cz-dd-btn{
+  display:inline-flex; align-items:center; gap:8px;
+  min-width:64px; justify-content:space-between;
+}
+.cz-dd-chev{width:12px; height:12px; transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+.cz-dd.open .cz-dd-chev{transform:rotate(180deg);}
+.cz-dd-menu{
+  position:absolute; right:0; top:calc(100% + 6px); z-index:5;
+  min-width:100%; padding:4px; list-style:none;
+  background:var(--cz-panel); border:1px solid var(--cz-border); border-radius:12px;
+  box-shadow:0 12px 28px rgba(0,0,0,.4);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform:translateY(-8px) scale(.94); transform-origin:top right;
+  transition:opacity .18s ease, transform .26s cubic-bezier(.34,1.3,.64,1), visibility 0s linear .26s;
+}
+.cz-dd.up .cz-dd-menu{top:auto; bottom:calc(100% + 6px); transform:translateY(8px) scale(.94); transform-origin:bottom right;}
+.cz-dd.open .cz-dd-menu{
+  opacity:1; visibility:visible; pointer-events:auto; transform:none;
+  transition:opacity .18s ease, transform .26s cubic-bezier(.34,1.3,.64,1), visibility 0s;
+}
+.cz-dd-menu li{
+  padding:7px 14px; border-radius:8px; font-size:13px; color:var(--cz-muted); cursor:pointer; white-space:nowrap;
+  opacity:0; transform:translateY(-4px);
+  transition:opacity .2s ease, transform .25s cubic-bezier(.22,1,.36,1), background .12s ease, color .12s ease;
+}
+.cz-dd.open .cz-dd-menu li{opacity:1; transform:none; transition-delay:calc(var(--i, 0) * 35ms + 40ms), calc(var(--i, 0) * 35ms + 40ms), 0s, 0s;}
+.cz-dd-menu li.active{background:rgba(255,255,255,.1); color:var(--cz-ink);}
+.cz-dd-menu li.selected{color:var(--cz-ink); font-weight:600;}
+@media (prefers-reduced-motion:reduce){
+  .cz-dd-menu, .cz-dd-menu li, .cz-dd-chev, .cz-swatch.custom svg{transition:none;}
+}
+
+
+/* ---------- Fondos de pantalla: vista previa estilo Firefox (Personalizar) ---------- */
+.bgp{display:block;}
+.bgp-grid{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:26px 20px;}
+/* Separación entre la fila "Fondos de pantalla" (texto + botón) y las vistas previas (Añadir imagen, Oficiales, Abstractos...) */
+#bgGrid{display:flow-root; margin-top:36px;}
+.bgp-tile{
+  display:flex; flex-direction:column; align-items:stretch; gap:6px;
+  padding:0; background:none; border:none; cursor:pointer;
+  font-family:var(--sans); color:var(--cz-muted);
+}
+.bgp-prev{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  width:100%; aspect-ratio:4/3;
+  background-color:rgba(255,255,255,.06);
+  background-size:cover; background-position:center;
+  border-radius:8px;
+  color:var(--cz-muted);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, filter .2s ease;
+}
+.bgp-prev svg{width:20px; height:20px;}
+.bgp-empty{background-image:repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 8px, rgba(255,255,255,.015) 8px 16px);}
+.bgp-add .bgp-prev{border:2px dashed rgba(255,255,255,.4); background-image:none; background-color:transparent;}
+.bgp-label{font-size:11.5px; line-height:1.25; text-align:center; transition:color .2s ease;}
+.bgp-tile:hover .bgp-prev{transform:translateY(-3px); filter:brightness(1.1);}
+.bgp-tile:hover .bgp-label, .bgp-tile:focus-visible .bgp-label{color:var(--cz-ink);}
+.bgp-tile:active .bgp-prev{transform:scale(.95);}
+.bgp-tile:focus-visible{outline:none;}
+.bgp-tile:focus-visible .bgp-prev{box-shadow:0 0 0 5px var(--cz-bg), 0 0 0 7px var(--cz-muted);}
+.bgp-tile.selected .bgp-prev{box-shadow:0 0 0 5px var(--cz-bg), 0 0 0 7px var(--cz-ink);}   /* aro blanco separado de la imagen */
+.bgp-tile.selected .bgp-label{color:var(--cz-ink); font-weight:600;}
+
+/* Vista de una categoría: flecha para volver + título */
+.bgp-head{display:flex; align-items:center; gap:10px; margin-bottom:16px;}
+.bgp-back{
+  display:grid; place-items:center;
+  width:32px; height:32px; padding:0;
+  background:none; border:none; border-radius:8px;
+  color:var(--cz-ink); cursor:pointer;
+  transition:background .15s ease, transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+.bgp-back svg{width:20px; height:20px;}
+.bgp-back:hover{background:rgba(255,255,255,.1); transform:translateX(-2px);}
+.bgp-back:focus-visible{outline:2px solid var(--cz-ink);}
+.bgp-title{font-size:16px; font-weight:700;}
+.bgp-none{grid-column:1 / -1; padding:22px 0; text-align:center; font-size:12.5px; color:var(--cz-muted);}
+
+/* "Colores": el gotero con borde punteado abre el selector de color */
+.bgp-pick .bgp-prev{border:2px dashed rgba(255,255,255,.4);}
+.bgp-pick.selected .bgp-prev{border-style:solid; border-color:transparent; color:#fff;}
+.bgp-pick.selected .bgp-prev svg{filter:drop-shadow(0 0 2px rgba(0,0,0,.6));}
+@media (prefers-reduced-motion:reduce){
+  .bgp-prev, .bgp-label, .bgp-back{transition:none;}
+}
+
+/* Selector de color propio dentro del panel de fondos (categoría "Colores") */
+.bgp-pick[aria-expanded="true"] .bgp-prev{border-color:var(--cz-ink);}
+.bgp-editor{
+  margin-top:16px; padding:12px;
+  background:var(--cz-panel);
+  border:1px solid var(--cz-border);
+  border-radius:12px;
+}
+.bgp-sv{
+  position:relative; width:100%; height:130px;
+  border-radius:8px; cursor:crosshair; touch-action:none; outline:none;
+}
+.bgp-sv:focus-visible{box-shadow:0 0 0 2px var(--cz-bg), 0 0 0 4px var(--cz-ink);}
+.bgp-sv-handle{
+  position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px;
+  border:3px solid #fff; border-radius:50%;
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.45);
+  pointer-events:none;
+}
+.bgp-hue{
+  -webkit-appearance:none; appearance:none;
+  display:block; width:100%; height:12px; margin:14px 0 12px; padding:0;
+  border-radius:6px; outline:none; cursor:pointer;
+  background:linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+}
+.bgp-hue::-webkit-slider-thumb{
+  -webkit-appearance:none; width:20px; height:20px;
+  background:#fff; border:3px solid #fff; border-radius:50%;
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.45);
+}
+.bgp-hue::-moz-range-thumb{
+  width:14px; height:14px; background:#fff; border:3px solid #fff; border-radius:50%;
+  box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.45);
+}
+.bgp-hue:focus-visible{box-shadow:0 0 0 2px var(--cz-bg), 0 0 0 4px var(--cz-ink);}
+.bgp-hexrow{display:flex; align-items:center; gap:10px;}
+.bgp-swatch{flex-shrink:0; width:32px; height:32px; border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.2);}
+.bgp-hex{
+  flex:1; min-width:0; padding:7px 10px;
+  background:transparent; border:1px solid var(--cz-border); border-radius:8px;
+  font-family:'Share Tech Mono', ui-monospace, monospace; font-size:13px; letter-spacing:1px;
+  color:var(--cz-ink); text-transform:lowercase;
+}
+.bgp-hex:focus{outline:none; border-color:var(--cz-ink);}
+
+/* "Añadir imagen" mientras se procesa un archivo grande */
+@keyframes bgpPulse{50%{opacity:.45;}}
+.bgp-add.bgp-busy{cursor:progress; animation:bgpPulse 1s ease-in-out infinite;}
+@media (prefers-reduced-motion:reduce){ .bgp-add.bgp-busy{animation:none;} }
+
+/* ---------- Panel "Personalizar": flotante, con esquinas redondeadas y de vidrio líquido ---------- */
+.cz-panel{
+  --cz-panel:  rgba(255,255,255,.10);       /* cuadros internos (editor de color...): translúcidos sobre el vidrio */
+  --cz-border: rgba(255,255,255,.20);
+
+  /* Separado de las orillas de la pantalla, no pegado al borde */
+  top:max(14px, env(safe-area-inset-top, 0px));
+  bottom:14px;
+  right:-360px;
+  height:auto;
+  width:min(300px, calc(100vw - 28px));
+  padding:22px 20px 24px;
+
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:30px;
+
+  /* Vidrio líquido: tinte oscuro para leerse, brillos en las esquinas y desenfoque fuerte de lo que hay detrás */
+  background:
+    radial-gradient(130% 62% at 0% 0%, rgba(255,255,255,.24), rgba(255,255,255,0) 58%),
+    radial-gradient(90% 55% at 100% 100%, rgba(255,255,255,.10), rgba(255,255,255,0) 62%),
+    linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.02) 50%, rgba(255,255,255,.06)),
+    rgba(24,23,32,.60);
+  -webkit-backdrop-filter:blur(34px) saturate(190%);
+  backdrop-filter:blur(34px) saturate(190%);
+  box-shadow:
+    0 30px 70px rgba(0,0,0,.45),
+    0 6px 18px rgba(0,0,0,.20),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.50),     /* borde de luz arriba a la izquierda */
+    inset -1px -1px 0 rgba(255,255,255,.14),
+    inset 0 0 42px rgba(255,255,255,.06);
+
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.30) transparent;
+
+  /* Cerrado: fuera de la pantalla e invisible (así su sombra tampoco se asoma por el borde) */
+  visibility:hidden;
+  opacity:0;
+  transition:right .45s cubic-bezier(.22,1,.36,1), opacity .3s ease, visibility 0s linear .45s;
+}
+.cz-panel.open{
+  right:14px;
+  visibility:visible;
+  opacity:1;
+  transition:right .45s cubic-bezier(.22,1,.36,1), opacity .3s ease, visibility 0s;
+}
+/* El botón flotante se corre para quedar junto al panel */
+.fab.shifted{right:min(328px, calc(100vw - 72px));}
+
+/* Los aros de selección usan "outline" para dejar un hueco transparente (el panel ya no es de un solo color) */
+.bgp-tile:focus-visible .bgp-prev,
+.bgp-tile.selected .bgp-prev{box-shadow:none; outline:2px solid var(--cz-ink); outline-offset:5px;}
+.bgp-tile:focus-visible:not(.selected) .bgp-prev{outline-color:var(--cz-muted);}
+.cz-swatch.selected{box-shadow:none; outline:2px solid var(--cz-ink); outline-offset:2px;}
+
+/* Sin desenfoque disponible o con "menos transparencia" en el sistema, el panel se vuelve sólido */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .cz-panel{background:rgba(28,27,34,.94);}
+}
+@media (prefers-reduced-transparency: reduce){
+  .cz-panel{background:#1c1b22; -webkit-backdrop-filter:none; backdrop-filter:none;}
+}
+@media (prefers-reduced-motion:reduce){
+  .cz-panel, .cz-panel.open{transition:none;}
+}
+
+/* ---------- Panel "Personalizar": animación de abrir y cerrar ---------- */
+/* Abrir: el panel entra deslizándose desde la derecha, crece de 90 % a 100 % con un pequeño rebote al final,
+   y su contenido sube en cascada (título, Apariencia, Fondos, Accesos directos).
+   Cerrar: el contenido se desvanece primero y el panel se encoge y sale acelerando hacia la derecha. */
+.cz-panel{
+  right:14px;                                   /* ya no se anima "right": se mueve con transform (más fluido) */
+  transform-origin:100% 50%;
+  transform:translateX(calc(100% + 40px)) scale(.9);
+  opacity:0;
+  visibility:hidden;
+  transition:
+    transform .42s cubic-bezier(.5, 0, .75, 0),
+    opacity .32s ease .06s,
+    visibility 0s linear .42s;
+}
+.cz-panel.open{
+  transform:none;
+  opacity:1;
+  visibility:visible;
+  transition:
+    transform .75s cubic-bezier(.2, 1.12, .3, 1),
+    opacity .35s ease,
+    visibility 0s;
+}
+.cz-scroll > *{
+  opacity:0;
+  transform:translateY(16px);
+  transition:opacity .18s ease, transform .18s ease;
+}
+.cz-panel.open .cz-scroll > *{
+  opacity:1;
+  transform:none;
+  transition:
+    opacity .5s ease var(--d, .2s),
+    transform .75s cubic-bezier(.16, 1, .3, 1) var(--d, .2s);
+}
+.cz-panel.open .cz-scroll > :nth-child(1){--d:.16s;}
+.cz-panel.open .cz-scroll > :nth-child(2){--d:.23s;}
+.cz-panel.open .cz-scroll > :nth-child(3){--d:.30s;}
+.cz-panel.open .cz-scroll > :nth-child(4){--d:.37s;}
+.cz-panel.open .cz-scroll > :nth-child(5){--d:.44s;}
+/* El botón flotante acompaña al panel con el mismo ritmo */
+.fab{transition:right .6s cubic-bezier(.16, 1, .3, 1), transform .15s;}
+@media (prefers-reduced-motion:reduce){
+  .cz-panel, .cz-panel.open, .cz-scroll > *, .cz-panel.open .cz-scroll > *, .fab{transition:none;}
+  .cz-panel{transform:none;}
+  .cz-scroll > *{transform:none;}
+}
+
+/* ---------- Panel "Personalizar": la barra de scroll queda dentro del panel ---------- */
+/* El panel ya no hace scroll él mismo (su barra llegaba hasta las esquinas redondeadas y se salía):
+   recorta con sus esquinas y el scroll vive en una caja interior con margen arriba y abajo. */
+.cz-panel{overflow:hidden; padding:0;}
+.cz-scroll{
+  position:absolute;
+  inset:20px 6px 20px 0;                 /* la barra empieza y termina lejos de las esquinas */
+  padding:2px 12px 6px 20px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;                  /* Firefox */
+  scrollbar-color:rgba(255,255,255,.32) transparent;
+}
+.cz-scroll::-webkit-scrollbar{width:10px;}                          /* Chrome, Edge, Safari */
+.cz-scroll::-webkit-scrollbar-track{background:transparent;}
+.cz-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.30); border-radius:999px; border:3px solid transparent; background-clip:padding-box;}
+.cz-scroll::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.50); background-clip:padding-box;}
+
+/* ---------- Pantalla de carga: dónde se encontró cada archivo y qué imagen se está contando ---------- */
+.intro-steps{width:300px;}
+.st-where{
+  flex-basis:100%;
+  height:13px;                           /* altura fija: la lista no se mueve cuando aparece el texto */
+  margin-left:28px;
+  font:11px/13px ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.intro-steps li.failed .st-where{color:#d94b4b;}
+
+/* ---------- Botón "Personalizar": al pasar el cursor se estira en una píldora y muestra su nombre ---------- */
+.fab{
+  width:auto;                              /* el ancho lo marca el contenido: 48 px con solo el icono */
+  min-width:48px;
+  height:48px;
+  padding:0 13px;
+  border-radius:999px;
+  overflow:hidden;
+  justify-content:flex-end;                /* crece hacia la izquierda; el icono se queda en su lugar */
+  transform-origin:100% 50%;
+  transition:
+    right .6s cubic-bezier(.16, 1, .3, 1),
+    transform .4s cubic-bezier(.34, 1.4, .64, 1),
+    background-color .35s ease,
+    border-color .35s ease,
+    box-shadow .45s ease;
+}
+.fab-label{
+  max-width:0;
+  margin-right:0;
+  opacity:0;
+  transform:translateX(12px);
+  white-space:nowrap;
+  overflow:hidden;
+  font:600 14.5px/1 var(--sans);
+  letter-spacing:.01em;
+  transition:
+    max-width .55s cubic-bezier(.16, 1, .3, 1),
+    margin-right .55s cubic-bezier(.16, 1, .3, 1),
+    opacity .2s ease,
+    transform .55s cubic-bezier(.16, 1, .3, 1);
+}
+.fab-icon{flex-shrink:0; transition:transform .55s cubic-bezier(.34, 1.56, .64, 1);}
+
+/* Estado "abierto" (cursor encima o foco con teclado): el texto se despliega y el lápiz hace un giro */
+.fab:focus-visible{outline:2px solid var(--glass-focus); outline-offset:3px;}
+.fab:focus-visible .fab-label{
+  max-width:130px; margin-right:10px; opacity:1; transform:none;
+  transition-delay:0s, 0s, .1s, 0s;
+}
+.fab:focus-visible .fab-icon{transform:rotate(-14deg) scale(1.1);}
+@media (hover:hover){
+  .fab:hover{
+    transform:translateY(-2px);
+    background-color:color-mix(in srgb, var(--accent) 24%, var(--glass-bg-hover));   /* se tiñe con el color del tema */
+    border-color:color-mix(in srgb, var(--accent) 55%, transparent);
+    box-shadow:0 14px 34px color-mix(in srgb, var(--accent) 32%, rgba(0,0,0,.28)), inset 0 1px 0 var(--glass-hi);
+  }
+  .fab:hover .fab-label{
+    max-width:130px; margin-right:10px; opacity:1; transform:none;
+    transition-delay:0s, 0s, .1s, 0s;
+  }
+  .fab:hover .fab-icon{transform:rotate(-14deg) scale(1.1);}
+}
+.fab:active{transform:translateY(0) scale(.96);}
+@media (prefers-reduced-motion:reduce){
+  .fab, .fab-label, .fab-icon{transition:none;}
+}
+
+/* ---------- Panel "Personalizar": enlace "Administrar más ajustes" fijo abajo a la izquierda ---------- */
+.cz-scroll{inset:20px 6px 58px 0;}          /* deja sitio abajo para el enlace */
+.cz-foot{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  padding:14px 22px 18px;
+  opacity:0;
+  transform:translateY(16px);
+  transition:opacity .18s ease, transform .18s ease;
+}
+.cz-foot::before{                             /* línea fina arriba, con margen a los lados */
+  content:'';
+  position:absolute; top:0; left:20px; right:20px;
+  height:1px;
+  background:var(--cz-border);
+}
+.cz-panel.open .cz-foot{
+  opacity:1;
+  transform:none;
+  transition:
+    opacity .5s ease .5s,
+    transform .75s cubic-bezier(.16, 1, .3, 1) .5s;   /* entra al final de la cascada */
+}
+.cz-more{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:4px 6px 4px 2px;
+  background:none;
+  border:none;
+  border-radius:8px;
+  color:#c9adff;
+  font-family:var(--sans);
+  font-size:14px;
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+  transition:color .2s ease;
+}
+.cz-more svg{width:20px; height:20px; flex-shrink:0; transition:transform .6s cubic-bezier(.34, 1.56, .64, 1);}
+.cz-more:hover{color:#e4d6ff;}
+.cz-more:hover svg{transform:rotate(60deg);}   /* el engranaje gira al pasar el cursor */
+.cz-more:active{color:#fff;}
+.cz-more:focus-visible{outline:2px solid #c9adff; outline-offset:2px;}
+@media (prefers-reduced-motion:reduce){
+  .cz-foot, .cz-panel.open .cz-foot, .cz-more, .cz-more svg{transition:none;}
+  .cz-foot{transform:none;}
+}
+
+/* =========================================================
+   Pantalla de Ajustes (se abre con "Administrar más ajustes")
+   ========================================================= */
+.st{
+  --st-bg:#101012; --st-card:#1b1a20; --st-inner:#2a2931; --st-line:rgba(255,255,255,.12);
+  --st-ink:#fbfbfe; --st-muted:#b4b3bd; --st-acc:var(--ak-acc,#b8a1ff); --st-acc-ink:var(--ak-ink,#15111f);
+  position:fixed; inset:0; z-index:90;
+  display:grid; grid-template-columns:minmax(240px,350px) minmax(0,1fr);
+  background:var(--st-bg); color:var(--st-ink);
+  font-family:var(--sans);
+  padding-top:env(safe-area-inset-top,0px);
+  user-select:none; -webkit-user-select:none;
+  visibility:hidden; opacity:0; transform:scale(.985);
+  transition:opacity .25s ease, transform .35s cubic-bezier(.22,1,.36,1), visibility 0s linear .35s;
+}
+.st.open{visibility:visible; opacity:1; transform:none; transition:opacity .25s ease, transform .35s cubic-bezier(.22,1,.36,1), visibility 0s;}
+.st *{box-sizing:border-box;}
+
+/* --- Barra lateral --- */
+.st-side{display:flex; flex-direction:column; padding:40px 22px 24px 44px; overflow-y:auto; scrollbar-width:thin;}
+.st-title{display:flex; align-items:center; gap:12px; margin:0 0 26px; font:600 28px/1 var(--sans);}
+.st-title img{width:34px; height:34px; border-radius:8px; object-fit:contain;}
+.st-nav{display:flex; flex-direction:column; gap:4px; list-style:none;}
+.st-nav button{
+  display:flex; align-items:center; gap:14px; width:100%; min-height:48px; padding:10px 18px;
+  border:0; border-radius:999px; background:none; color:inherit; font:500 17px/1.25 var(--sans);
+  text-align:left; cursor:pointer; transition:background .15s;
+}
+.st-nav button:hover{background:rgba(255,255,255,.08);}
+.st-nav button.active{background:var(--st-acc); color:var(--st-acc-ink);}
+.st-nav svg{flex:none; width:20px; height:20px;}
+.st-sep{height:1px; margin:14px 0; background:var(--st-line);}
+.st-back{margin-top:auto; padding-top:20px;}
+
+/* --- Contenido --- */
+.st-main{overflow-y:auto; padding:40px 40px 80px 0; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.28) transparent;}
+.st-col{max-width:900px;}
+.st-search{
+  display:flex; align-items:center; gap:12px; height:54px; padding:0 20px;
+  border:2px solid var(--st-acc); border-radius:999px; background:var(--st-card);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--st-acc) 25%, transparent);
+}
+.st-search svg{flex:none; width:20px; height:20px; color:var(--st-muted);}
+.st-search input{flex:1; min-width:0; border:0; outline:0; background:none; color:inherit; font:400 18px var(--sans); user-select:text; -webkit-user-select:text;}
+.st-search input::placeholder{color:var(--st-muted);}
+
+.st-page{display:none; padding-top:24px;}
+.st-page.show{display:block; animation:stIn .25s ease;}
+@keyframes stIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+.st-page > h2{display:flex; align-items:center; gap:12px; margin:0 0 22px 4px; font:480 32px/1.1 var(--serif);}
+.st-page > h2 svg{width:24px; height:24px;}
+
+.st-card{margin-bottom:24px; padding:30px 34px 26px; border:1px solid var(--st-line); border-radius:28px; background:var(--st-card);}
+.st-card > h3{margin:0 0 16px; font:600 22px/1.2 var(--sans);}
+.st-card > p{margin:-8px 0 16px; color:var(--st-muted); font-size:15px; line-height:1.5;}
+
+.st-row{display:flex; align-items:center; justify-content:space-between; gap:20px; padding:13px 0; font-size:17px;}
+.st-row + .st-row{border-top:1px solid var(--st-line);}
+.st-row small{display:block; margin-top:3px; color:var(--st-muted); font-size:14px; line-height:1.4;}
+.st-row.hide, .st-card.hide, .st-page.hide{display:none !important;}
+
+
+.st-select{min-width:120px; padding:9px 14px; border:1px solid var(--st-line); border-radius:12px; background:var(--st-inner); color:inherit; font:500 16px var(--sans);}
+.st-btn{padding:10px 20px; border:1px solid var(--st-line); border-radius:999px; background:var(--st-inner); color:inherit; font:600 15px var(--sans); cursor:pointer; white-space:nowrap; transition:background .15s;}
+.st-btn:hover{background:#383742;}
+.st-btn.danger.armed{background:#c4455a; border-color:#c4455a; color:#fff;}
+.st-btn:focus-visible, .st-nav button:focus-visible, .st-opt:focus-visible, .st-theme:focus-visible{outline:2px solid var(--st-ink); outline-offset:3px;}
+
+/* Opciones de buscador */
+.st-opts{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; padding:6px 0 4px;}
+.st-opt{display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--st-line); border-radius:16px; background:var(--st-inner); color:inherit; font:500 16px var(--sans); text-align:left; cursor:pointer;}
+.st-opt img{width:22px; height:22px; object-fit:contain;}
+
+/* Temas */
+.st-themes{display:flex; flex-wrap:wrap; gap:14px; padding:6px 0 4px;}
+.st-theme{width:44px; height:44px; border:2px solid var(--st-line); border-radius:50%; cursor:pointer; background:var(--c, #222);}
+.st-theme.none{background:repeating-linear-gradient(45deg,#2a2931 0 6px,#383742 6px 12px);}
+.st-theme[aria-checked="true"]{outline:2px solid var(--st-ink); outline-offset:3px;}
+
+.st-empty{display:none; padding:60px 0; text-align:center; color:var(--st-muted); font-size:18px;}
+.st-empty.show{display:block;}
+
+@media (max-width:820px){
+  .st{grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr);}
+  .st-side{flex-direction:row; align-items:center; gap:10px; padding:16px 16px 8px; overflow-x:auto; overflow-y:hidden;}
+  .st-title{margin:0 8px 0 0; font-size:22px;} .st-title span{display:none;}
+  .st-nav{flex-direction:row;} .st-nav button{width:auto; padding:10px 16px; white-space:nowrap; font-size:15px;}
+  .st-sep, .st-back{display:none;}
+  .st-main{padding:8px 16px 60px;}
+  .st-card{padding:22px 20px;}
+  .st-row{flex-wrap:wrap;}
+}
+@media (prefers-reduced-motion:reduce){ .st, .st-page.show{animation:none; transition:none;} }
+
+/* --- Lista desplegable animada (Filas de accesos directos) --- */
+.st-dd{position:relative; flex:none;}
+.st-select{display:flex; align-items:center; justify-content:space-between; gap:14px; min-width:130px; cursor:pointer; text-align:left;}
+.st-select:focus-visible{outline:2px solid var(--st-ink); outline-offset:3px;}
+.st-chev{width:16px; height:16px; flex:none; transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
+.st-dd.open .st-chev{transform:rotate(180deg);}
+
+.st-menu{
+  position:absolute; top:calc(100% + 8px); right:0; z-index:5; min-width:100%; padding:6px; list-style:none;
+  border:1px solid var(--st-line); border-radius:16px; background:#2a2931;
+  box-shadow:0 18px 40px rgba(0,0,0,.5);
+  transform-origin:top right;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform:translateY(-8px) scale(.92);
+  transition:opacity .18s ease, transform .22s cubic-bezier(.4,0,1,1), visibility 0s linear .22s;
+}
+.st-dd.open .st-menu{
+  opacity:1; visibility:visible; pointer-events:auto; transform:none;
+  transition:opacity .2s ease, transform .38s cubic-bezier(.34,1.56,.64,1), visibility 0s;
+}
+.st-item{
+  padding:10px 14px; border-radius:10px; font:500 16px var(--sans); cursor:pointer; outline:0;
+  opacity:0; transform:translateY(-4px); transition:background .12s, opacity .2s ease, transform .25s ease;
+}
+.st-dd.open .st-item{opacity:1; transform:none; transition-delay:0s, calc(var(--i) * 28ms + 40ms), calc(var(--i) * 28ms + 40ms);}
+.st-item:hover, .st-item:focus-visible{background:rgba(255,255,255,.12);}
+.st-item[aria-selected="true"]{background:color-mix(in srgb, var(--st-acc) 20%, transparent); color:#fff;}
+@media (prefers-reduced-motion:reduce){ .st-menu, .st-item, .st-chev{transition:none !important;} }
+
+/* Texto del botón que se desliza al cambiar de opción */
+.st-val{position:relative; display:inline-block; overflow:hidden; line-height:1.5; vertical-align:middle;}
+.st-cur{display:inline-block;}
+.st-ghost{position:absolute; left:0; top:0; white-space:nowrap; pointer-events:none;}
+
+/* --- Elección de buscador: el marcador se desliza hasta el nuevo y la tarjeta "salta" --- */
+.st-opts{position:relative;}
+.st-opt{position:relative; z-index:1; transition:background .25s, border-color .25s;}
+.st-opt[aria-checked="true"]{background:transparent; border-color:transparent;}
+.st-pick{
+  position:absolute; left:0; top:0; z-index:0; border-radius:16px; pointer-events:none;
+  border:1px solid var(--st-acc); background:color-mix(in srgb, var(--st-acc) 16%, transparent); box-shadow:inset 0 0 0 1px var(--st-acc);
+  transition:transform .5s cubic-bezier(.34,1.3,.64,1), width .4s ease, height .4s ease;
+}
+.st-pick.nt{transition:none;}
+.st-pick.pulse{animation:stPulse .6s ease-out;}
+@keyframes stPulse{from{box-shadow:inset 0 0 0 1px var(--st-acc), 0 0 0 0 color-mix(in srgb, var(--st-acc) 55%, transparent);} to{box-shadow:inset 0 0 0 1px var(--st-acc), 0 0 0 16px color-mix(in srgb, var(--st-acc) 0%, transparent);}}
+.st-opt.pop{animation:stPop .45s cubic-bezier(.34,1.56,.64,1);}
+.st-opt.pop img{animation:stSpin .55s cubic-bezier(.34,1.56,.64,1);}
+@keyframes stPop{0%{transform:scale(.93);} 55%{transform:scale(1.04);} 100%{transform:scale(1);}}
+@keyframes stSpin{0%{transform:rotate(-25deg) scale(.7);} 100%{transform:none;}}
+.st-tick{width:18px; height:18px; margin-left:auto; flex:none; padding:3px; border-radius:50%; background:var(--st-acc); color:var(--st-acc-ink); transform:scale(0); transition:transform .4s cubic-bezier(.34,1.56,.64,1) .1s;}
+.st-opt[aria-checked="true"] .st-tick{transform:scale(1);}
+@media (prefers-reduced-motion:reduce){ .st-pick, .st-tick{transition:none !important;} .st-pick.pulse, .st-opt.pop, .st-opt.pop img{animation:none !important;} }
+
+/* --- Ventana flotante: borrar historial --- */
+.st-modal{
+  position:absolute; inset:0; z-index:20; display:grid; place-items:center; padding:20px;
+  background:rgba(8,8,10,.55); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  opacity:0; visibility:hidden; transition:opacity .25s ease, visibility 0s linear .25s;
+}
+.st-modal.open{opacity:1; visibility:visible; transition:opacity .25s ease, visibility 0s;}
+.st-win{
+  width:min(520px,100%); max-height:min(640px,calc(100% - 20px)); display:flex; flex-direction:column; overflow:hidden;
+  padding:28px 28px 22px; border:1px solid rgba(255,255,255,.2); border-radius:28px; background:#1e1d25;
+  box-shadow:0 30px 80px rgba(0,0,0,.6), inset 1px 1px 0 rgba(255,255,255,.12);
+  transform:translateY(18px) scale(.92); opacity:0;
+  transition:transform .25s ease, opacity .2s ease;
+}
+.st-modal.open .st-win{transform:none; opacity:1; transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;}
+.st-win h3{margin:0 0 8px; font:600 22px/1.25 var(--sans);}
+.st-win-sub{margin:0 0 20px; color:var(--st-muted); font-size:15px; line-height:1.5;}
+.st-win-btns{display:flex; gap:12px;}
+.st-win-btns .st-btn{flex:1; padding:13px 20px; font-size:16px;}
+.st-btn-danger{background:#c4455a; border-color:#c4455a; color:#fff;}
+.st-btn-danger:hover{background:#d4546a;}
+.st-btn:disabled{opacity:.45; cursor:default;}
+.st-win h4{margin:26px 0 8px; padding-top:18px; border-top:1px solid var(--st-line); font:600 15px var(--sans); color:var(--st-muted);}
+.st-win [hidden]{display:none !important;}
+
+.st-hist{list-style:none; margin:0; padding:0; overflow-y:auto; min-height:0; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.28) transparent;}
+.st-hist-item{
+  display:flex; align-items:center; gap:12px; padding:0 4px 0 6px; height:50px; overflow:hidden;
+  border-radius:12px; font-size:16px;
+  transition:height .32s ease, opacity .25s ease, transform .32s ease, padding .32s ease, background .12s;
+}
+.st-hist-item:hover{background:rgba(255,255,255,.06);}
+.st-hist-item img{width:20px; height:20px; flex:none; object-fit:contain;}
+.st-hist-q{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.st-hist-e{flex:none; color:var(--st-muted); font-size:13px;}
+.st-hist-del{flex:none; display:grid; place-items:center; width:36px; height:36px; border:0; border-radius:50%; background:none; color:var(--st-muted); cursor:pointer; transition:background .15s, color .15s, transform .2s;}
+.st-hist-del svg{width:18px; height:18px;}
+.st-hist-del:hover, .st-hist-del:focus-visible{background:rgba(196,69,90,.25); color:#ff8da0; transform:scale(1.08); outline:0;}
+.st-hist-item.out{height:0 !important; opacity:0; transform:translateX(36px); padding-top:0; padding-bottom:0;}
+.st-modal.open .st-hist-item{animation:stRow .35s cubic-bezier(.22,1,.36,1) backwards; animation-delay:calc(var(--i) * 35ms + 120ms);}
+@keyframes stRow{from{opacity:0; transform:translateY(8px);}}
+.st-hist-empty{padding:18px 0 6px; color:var(--st-muted); text-align:center; font-size:15px;}
+@media (prefers-reduced-motion:reduce){ .st-modal, .st-win, .st-hist-item{transition:none !important; animation:none !important;} }
+
+/* =========================================================
+   Color del tema (Apariencia) + animación al cambiar de color
+   ========================================================= */
+/* Variables "registradas": el navegador las anima de un color a otro, y todo lo que las usa cambia con ellas */
+@property --ak-acc{syntax:'<color>'; inherits:true; initial-value:#b8a1ff;}
+@property --ak-ink{syntax:'<color>'; inherits:true; initial-value:#15111f;}
+@property --ak-foot{syntax:'<color>'; inherits:true; initial-value:#c9adff;}
+@property --theme-color{syntax:'<color>'; inherits:true; initial-value:transparent;}   /* también anima los contornos de la página principal */
+:root{
+  transition:
+    --theme-color .7s cubic-bezier(.4,0,.2,1),
+    --ak-acc .7s cubic-bezier(.4,0,.2,1),
+    --ak-ink .7s cubic-bezier(.4,0,.2,1),
+    --ak-foot .7s cubic-bezier(.4,0,.2,1);
+}
+:root.ak-nt{transition:none;}
+@media (prefers-reduced-motion:reduce){ :root{transition:none;} }
+
+/* Panel Personalizar: solo el engranaje y "Administrar más ajustes" toman el color */
+.cz-more{color:var(--ak-foot);}
+.cz-more:hover{color:color-mix(in srgb, var(--ak-foot) 55%, #fff);}
+.cz-more:focus-visible{outline-color:var(--ak-foot);}
+
+/* Ajustes: botones, lista, contornos */
+.st-btn:not(.st-btn-danger):not(.armed){
+  border-color:color-mix(in srgb, var(--st-acc) 60%, transparent);
+  background:color-mix(in srgb, var(--st-acc) 16%, var(--st-inner));
+}
+.st-btn:not(.st-btn-danger):not(.armed):hover{background:var(--st-acc); border-color:var(--st-acc); color:var(--st-acc-ink);}
+.st-select{border-color:color-mix(in srgb, var(--st-acc) 55%, transparent);}
+.st-menu{border-color:color-mix(in srgb, var(--st-acc) 45%, transparent);}
+.st-item:hover, .st-item:focus-visible{background:color-mix(in srgb, var(--st-acc) 22%, transparent);}
+.st-nav button:hover{background:color-mix(in srgb, var(--st-acc) 18%, transparent);}
+.st-nav button.active:hover{background:var(--st-acc);}
+.st-opt:hover{border-color:color-mix(in srgb, var(--st-acc) 65%, transparent);}
+.st-hist-item:hover{background:color-mix(in srgb, var(--st-acc) 12%, transparent);}
+.st.themed .st-card{border-color:color-mix(in srgb, var(--st-acc) 50%, transparent);}
+.st.themed .st-win{border-color:color-mix(in srgb, var(--st-acc) 60%, transparent);}
+.st.themed .st-sep, .st.themed .st-row + .st-row{border-color:color-mix(in srgb, var(--st-acc) 22%, transparent);}
+
+/* --- Rueda de colores (180) --- */
+.st-wheel-wrap{display:flex; justify-content:center; padding:6px 0 2px;}
+.st-wheel{width:min(340px,100%); height:auto; display:block; overflow:visible;}
+.st-seg{stroke:var(--st-card); stroke-width:1.4; cursor:pointer; outline:0;}
+.st-mark{fill:none; stroke:#fff; stroke-linejoin:round; pointer-events:none; opacity:0;}
+.st-mark.hover.on{opacity:.9; stroke-width:2;}
+.st-mark.sel.on{opacity:1; stroke-width:3.2; filter:drop-shadow(0 0 3px rgba(0,0,0,.6));}
+.st-mark.sel.pop{animation:stMarkPop .55s cubic-bezier(.34,1.56,.64,1);}
+@keyframes stMarkPop{from{stroke-width:9; opacity:.2;} to{stroke-width:3.2; opacity:1;}}
+.st-hub{fill:var(--st-acc); stroke:var(--st-card); stroke-width:3; pointer-events:none;}
+.st-hub-t{fill:var(--st-acc-ink); font:700 12px var(--sans); letter-spacing:.02em; pointer-events:none;}
+@media (prefers-reduced-motion:reduce){ .st-mark.sel.pop{animation:none;} }
+
+/* Botones que son enlaces (Legal) */
+.st-link{display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:inherit;}
+.st-link svg{width:16px; height:16px; flex:none;}
+.st-link:focus-visible{outline:2px solid var(--st-ink); outline-offset:3px;}
+
+/* --- Ventana de lectura (privacidad, cookies, términos) --- */
+.st-docwin{width:min(780px,100%); max-height:calc(100% - 20px); padding:26px 8px 22px 30px;}
+.st-doc-head{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-right:22px;}
+.st-doc-head h3{margin:0; font:480 28px/1.15 var(--serif);}
+.st-doc-x{flex:none; display:grid; place-items:center; width:40px; height:40px; border:1px solid color-mix(in srgb, var(--st-acc) 55%, transparent); border-radius:50%; background:color-mix(in srgb, var(--st-acc) 16%, var(--st-inner)); color:inherit; cursor:pointer; transition:background .2s, color .2s, transform .25s;}
+.st-doc-x svg{width:18px; height:18px;}
+.st-doc-x:hover{background:var(--st-acc); color:var(--st-acc-ink); transform:rotate(90deg);}
+.st-doc-x:focus-visible{outline:2px solid var(--st-ink); outline-offset:3px;}
+.st-doc-meta{margin:6px 0 16px; color:var(--st-muted); font-size:14px;}
+.st-doc-body{flex:1; min-height:0; overflow-y:auto; padding-right:22px; font-size:16px; line-height:1.65; outline:0; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.28) transparent; user-select:text; -webkit-user-select:text;}
+.st-doc-body:focus-visible{outline:2px solid color-mix(in srgb, var(--st-acc) 70%, transparent); outline-offset:4px; border-radius:8px;}
+.st-doc-body h2{margin:26px 0 10px; font:600 19px/1.3 var(--sans);}
+.st-doc-body p{margin:0 0 12px;}
+.st-doc-body ul{margin:0 0 12px 22px;} .st-doc-body li{margin-bottom:7px;}
+.st-doc-body a{color:color-mix(in srgb, var(--st-acc) 55%, #fff); text-underline-offset:3px;}
+.st-doc-body code{padding:2px 7px; border-radius:7px; background:var(--st-inner); border:1px solid var(--st-line); font:500 13px ui-monospace, Menlo, Consolas, monospace; word-break:break-all;}
+.st-doc-lead{margin:0 0 6px; padding:14px 18px; border:1px solid color-mix(in srgb, var(--st-acc) 50%, transparent); border-radius:18px; background:var(--st-inner);}
+.st-doc-lead p{margin:0;}
+.st-doc-tbl{margin:6px 0 14px; overflow-x:auto; border:1px solid var(--st-line); border-radius:16px; background:var(--st-inner);}
+.st-doc-tbl table{width:100%; border-collapse:collapse; font-size:14.5px; line-height:1.5;}
+.st-doc-tbl th, .st-doc-tbl td{padding:11px 14px; text-align:left; vertical-align:top; border-bottom:1px solid var(--st-line);}
+.st-doc-tbl tr:last-child td{border-bottom:0;}
+.st-doc-tbl th{color:var(--st-muted); font-weight:600; font-size:13px;}
+.st-link{display:inline-flex; align-items:center; gap:8px;}
+@media (max-width:820px){ .st-docwin{padding:20px 4px 16px 20px;} .st-doc-head h3{font-size:23px;} }
+
+/* Enlaces entre documentos: son botones con aspecto de enlace, así el navegador no muestra ninguna dirección abajo a la izquierda */
+.st-doc-link{
+  display:inline; padding:0; margin:0; border:0; background:none; font:inherit; line-height:inherit;
+  color:color-mix(in srgb, var(--st-acc) 55%, #fff); text-decoration:underline; text-underline-offset:3px; cursor:pointer;
+}
+.st-doc-link:hover{color:#fff;}
+.st-doc-link:focus-visible{outline:2px solid var(--st-ink); outline-offset:3px; border-radius:4px;}
+/* --- Sección Cookies: detalle de lo que se guarda --- */
+.st-ck{display:flex; flex-direction:column; gap:6px; margin-top:6px;}
+.st-ck-group{margin-top:10px;}
+.st-ck-group h4{margin:0 0 6px 4px; font:600 13px/1 var(--sans); letter-spacing:.06em; text-transform:uppercase; color:var(--st-muted);}
+.st-ck-row{align-items:flex-start;}
+.st-ck-val{max-width:60%; text-align:right; color:var(--st-muted); font:400 14px/1.5 var(--sans); white-space:pre-line; overflow-wrap:anywhere; user-select:text; -webkit-user-select:text;}
+.st-ck-dot{display:inline-block; width:12px; height:12px; margin-right:8px; border-radius:50%; vertical-align:-1px; border:1px solid rgba(255,255,255,.35);}
+.st-ck-note{margin:10px 4px 0; color:var(--st-muted); font:400 14px/1.55 var(--sans);}
+
+/* =========================================================
+   Aviso de cookies
+   ========================================================= */
+.ck-banner{
+  position:fixed; z-index:80;
+  left:50%; bottom:calc(18px + env(safe-area-inset-bottom, 0px));
+  width:min(720px, calc(100% - 28px));
+  display:flex; align-items:center; gap:20px;
+  padding:18px 20px; border-radius:22px;
+  background:rgba(28,27,34,.88); color:#f8f8fa;
+  border:1px solid rgba(255,255,255,.16);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4); backdrop-filter:blur(22px) saturate(1.4);
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
+  font-family:var(--sans);
+  user-select:none; -webkit-user-select:none;
+  opacity:0; transform:translate(-50%, 24px);
+  transition:opacity .35s ease, transform .45s cubic-bezier(.22,1,.36,1);
+}
+.ck-banner.show{opacity:1; transform:translate(-50%, 0);}
+.ck-text{flex:1; min-width:0;}
+.ck-text strong{display:block; margin-bottom:4px; font:600 15px/1.3 var(--sans);}
+.ck-text p{margin:0; font:400 13px/1.5 var(--sans); color:#cfcfd8;}
+.ck-link{
+  margin-top:8px; padding:0; border:0; background:none; cursor:pointer;
+  color:var(--ak-acc, #b8a1ff); font:500 13px var(--sans); text-decoration:underline; text-underline-offset:3px;
+}
+.ck-actions{display:flex; flex:none; gap:10px;}
+.ck-btn{
+  min-width:104px; height:42px; padding:0 20px; border-radius:999px; cursor:pointer;
+  border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.10); color:#f8f8fa;
+  font:600 14px var(--sans); transition:background .15s, transform .15s;
+}
+.ck-btn:hover{background:rgba(255,255,255,.2);}
+.ck-btn:active{transform:scale(.97);}
+.ck-btn:focus-visible, .ck-link:focus-visible{outline:2px solid var(--ak-acc, #b8a1ff); outline-offset:2px;}
+
+@media (max-width:620px){
+  .ck-banner{flex-direction:column; align-items:stretch; gap:14px;}
+  .ck-actions .ck-btn{flex:1;}
+}
+@media (prefers-reduced-motion:reduce){
+  .ck-banner{transition:opacity .2s ease;}
+}
+
+/* =========================================================
+   Interruptor de foco (inspirado en "Micro CSS bulb toggle button").
+   Aspecto de TODOS los interruptores: .cz-switch (panel Personalizar)
+   y .st-switch (Ajustes). Ambos usan un <input type="checkbox">.
+
+   Apagado: foco gris a la izquierda, rosca hacia el centro.
+   Encendido: el foco se desliza a la derecha, se ilumina en amarillo y la rosca queda a su izquierda.
+   ========================================================= */
+.cz-switch, .st-switch{
+  --bw:50px;          /* ancho de la pista */
+  --bh:28px;          /* alto de la pista */
+  --pad:3px;
+  --head:22px;        /* diámetro del foco */
+  --neck:14px;        /* largo de la rosca */
+  --tuck:4px;         /* cuánto se mete la rosca bajo el foco */
+  --off-track:#1e1f23;
+  --on-track:#3d3f46;
+  --off-bulb:#d8d8d8;
+  --on-bulb:#ffe27a;
+  --glow:rgba(255,213,74,.75);
+  --move:.38s cubic-bezier(.22,1,.36,1);
+  position:relative; display:inline-block; flex:none;
+  width:var(--bw); height:var(--bh);
+}
+.cz-switch input, .st-switch input{
+  position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:3;
+}
+
+/* ---------- Pista ---------- */
+.cz-switch .cz-slider,
+.st-switch span,
+.cz-switch input:checked + .cz-slider,
+.st-switch input:checked + span{
+  position:absolute; inset:0; border-radius:999px; border:0;
+  background:var(--off-track);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.06);
+  transition:background-color .15s ease .18s;
+}
+.cz-switch input:checked + .cz-slider,
+.st-switch input:checked + span{ background:var(--on-track); }
+
+/* ---------- Foco (cabeza) ---------- */
+.cz-switch .cz-slider::before,
+.st-switch span::before,
+.cz-switch input:checked + .cz-slider::before,
+.st-switch input:checked + span::before{
+  content:''; position:absolute; z-index:2;
+  top:50%; left:var(--pad);
+  width:var(--head); height:var(--head);
+  border-radius:50%;
+  background:var(--off-bulb);
+  box-shadow:0 0 0 rgba(255,213,74,0);
+  transform:translateY(-50%);
+  transition:left var(--move), background-color .15s ease .18s, box-shadow .3s ease .15s;
+}
+.cz-switch input:checked + .cz-slider::before,
+.st-switch input:checked + span::before{
+  left:calc(var(--bw) - var(--pad) - var(--head));
+  background:var(--on-bulb);
+  box-shadow:0 0 12px 2px var(--glow);
+  transform:translateY(-50%);
+}
+
+/* ---------- Rosca del foco ---------- */
+.cz-switch .cz-slider::after,
+.st-switch span::after,
+.cz-switch input:checked + .cz-slider::after,
+.st-switch input:checked + span::after{
+  content:''; position:absolute; z-index:1;
+  top:50%; left:calc(var(--pad) + var(--head) - var(--tuck));
+  width:var(--neck); height:13px; border-radius:2px;
+  transform:translateY(-50%);
+  background:
+    linear-gradient(#8a8a8a,#8a8a8a) 100% 50% / 3px 5px no-repeat,                         /* puntita del contacto */
+    repeating-linear-gradient(90deg,#bbb 0 2px,#999 2px 4px) 0 50% / 11px 100% no-repeat;    /* rosca */
+  transition:left var(--move), background-position var(--move);
+}
+.cz-switch input:checked + .cz-slider::after,
+.st-switch input:checked + span::after{
+  left:calc(var(--bw) - var(--pad) - var(--head) + var(--tuck) - var(--neck));
+  background:
+    linear-gradient(#8a8a8a,#8a8a8a) 0 50% / 3px 5px no-repeat,
+    repeating-linear-gradient(90deg,#bbb 0 2px,#999 2px 4px) 100% 50% / 11px 100% no-repeat;
+}
+
+/* ---------- Foco con el teclado ---------- */
+.cz-switch input:focus-visible + .cz-slider,
+.st-switch input:focus-visible + span{
+  outline:2px solid #f8f8fa; outline-offset:3px; box-shadow:inset 0 2px 5px rgba(0,0,0,.55);
+}
+
+/* ---------- Sin animaciones si el sistema lo pide ---------- */
+@media (prefers-reduced-motion:reduce){
+  .cz-switch .cz-slider::before, .cz-switch .cz-slider::after,
+  .st-switch span::before, .st-switch span::after{ transition:none; }
+}
+
+/* =========================================================
+   Modo "Reducir animaciones" (Ajustes → Apariencia)
+   Desactiva animaciones, transiciones y efectos costosos.
+   ========================================================= */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after{
+  animation-duration:0.001ms !important;
+  animation-delay:0ms !important;
+  animation-iteration-count:1 !important;
+  transition-duration:0.001ms !important;
+  transition-delay:0ms !important;
+  scroll-behavior:auto !important;
+}
+
+/* Efectos costosos (desenfoques, sombras grandes) fuera */
+html.reduce-motion .search input,
+html.reduce-motion .grid a,
+html.reduce-motion .engine-menu,
+html.reduce-motion .history-menu,
+html.reduce-motion .cz-panel,
+html.reduce-motion .fab,
+html.reduce-motion .shortcut,
+html.reduce-motion .sc-add,
+html.reduce-motion .qs,
+html.reduce-motion .qs-box,
+html.reduce-motion .st-search,
+html.reduce-motion .st-win{
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  box-shadow:none !important;
+}
+
+/* Sin fondo de pantalla el cristal ya es sólido; con fondo se deja translúcido pero sin desenfoque */
+html.reduce-motion body{ --glass-blur:none; }
+
+/* La intro no se anima, pero sigue existiendo (solo cambia al instante) */
+html.reduce-motion .intro-logo{animation:none !important;}
+html.reduce-motion .intro{transition:none !important;}
+
+/* Destello que sigue al mouse: no se dibuja (es solo decorativo) */
+html.reduce-motion .grid a::after{display:none !important;}
+
+/* La rueda de colores y los menús no animan su entrada */
+html.reduce-motion .st-mark.sel.pop,
+html.reduce-motion .st-pick.pulse,
+html.reduce-motion .st-opt.pop,
+html.reduce-motion .st-opt.pop img,
+html.reduce-motion .cz-dd-menu li,
+html.reduce-motion .st-menu li{animation:none !important;}
+
+/* Fondo de pantalla: al cambiar, entra directo sin fundido */
+html.reduce-motion .bg-layer{transition:none !important; animation:none !important;}
+html.reduce-motion body.bg-fading main,
+html.reduce-motion body.bg-fading main *,
+html.reduce-motion body.bg-fading .fab{transition:none !important;}
+
+/* =========================================================
+   Candado de la página (contraseña de 4 dígitos) — tema negro
+   ========================================================= */
+html.locked{overflow:hidden;}
+html.locked body > *:not(.lk):not(.intro){visibility:hidden !important;}   /* la pantalla de carga sí se ve; la contraseña se pide al terminar */
+
+.st-lock-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;}
+
+.lk{
+  position:fixed; inset:0; z-index:5000;
+  display:grid; place-items:center; padding:24px;
+  background:#000; color:#f4f4f5; font-family:var(--sans);
+  --mx:50%; --my:35%;
+  opacity:0; transition:opacity .35s ease;
+}
+.lk.show{opacity:1;}
+.lk.out{opacity:0; pointer-events:none;}
+.lk::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(520px circle at var(--mx) var(--my), rgba(255,255,255,.08), transparent 60%);
+}
+.lk-card{
+  position:relative; width:min(380px, 100%); box-sizing:border-box;
+  padding:34px 26px 22px; border-radius:26px; text-align:center;
+  background:linear-gradient(180deg,#131315,#0a0a0b);
+  border:1px solid #242428;
+  box-shadow:0 30px 80px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.05);
+  transition:border-color .5s ease, box-shadow .5s ease;
+}
+.lk.granted .lk-card{border-color:#d4d4d8; box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 30px 90px rgba(255,255,255,.07);}
+.lk-title{font:700 21px/1.2 var(--sans); letter-spacing:-.01em; color:#fff;}
+.lk-sub{margin-top:8px; min-height:20px; font:400 14px/1.4 var(--sans); color:#8b8b93;}
+.lk-stage{position:relative; height:128px; margin:24px 0 6px;}
+.lk-boxes,.lk-ringwrap,.lk-okwrap{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:12px;}
+
+.lk-box{
+  box-sizing:border-box; width:54px; height:62px; padding:0; margin:0;
+  border-radius:15px; border:1.5px solid #2c2c31; background:#101012; color:#fff;
+  font:600 24px/1 var(--sans); text-align:center; outline:none; caret-color:#fff;
+  box-shadow:none; -webkit-appearance:none; appearance:none;
+  transition:transform .25s cubic-bezier(.2,.9,.3,1.3), border-color .2s, box-shadow .25s, background .2s, opacity .3s;
+}
+.lk-box:focus{
+  border-color:#fff; background:#161618; transform:translateY(-4px) scale(1.05);
+  box-shadow:0 10px 26px rgba(255,255,255,.12), 0 0 0 4px rgba(255,255,255,.07);
+}
+.lk-box.filled{border-color:#6b6b73;}
+.lk-box:disabled{opacity:.4;}
+.lk-boxes.shake{animation:lk-shake .45s;}
+@keyframes lk-shake{20%{transform:translateX(-9px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(3px)}}
+.lk-box.fly{
+  transform:translate(var(--tx),var(--ty)) rotate(var(--r)) !important;
+  background:#18181b; border-color:#e5e5e7; box-shadow:0 8px 22px rgba(255,255,255,.1);
+  transition:transform .75s cubic-bezier(.16,1,.3,1), border-color .3s, background .3s;
+}
+.lk-box.gone{
+  transform:translate(var(--tx),var(--ty)) rotate(var(--r)) scale(0) !important; opacity:0;
+  transition:transform .35s ease-in, opacity .3s;
+}
+.lk-stage.is-ring .lk-boxes,.lk-stage.is-ok .lk-boxes{visibility:hidden;}
+
+.lk-ringwrap,.lk-okwrap{opacity:0; transform:scale(.7); pointer-events:none; transition:opacity .3s, transform .4s cubic-bezier(.2,.9,.3,1.3);}
+.lk-stage.is-ring .lk-ringwrap{opacity:1; transform:none;}
+.lk-ringwrap{width:96px; height:96px; inset:auto; left:50%; top:50%; margin:-48px 0 0 -48px;}
+.lk-ring{position:absolute; inset:0; width:100%; height:100%; transform:rotate(-90deg);}
+.lk-ring circle{fill:none; stroke-width:5;}
+.lk-ring-bg{stroke:#26262a;}
+.lk-ring-fg{stroke:#fff; stroke-linecap:round;}
+.lk-pct{position:relative; font:600 20px/1 var(--sans); color:#fff;}
+
+.lk-okwrap{flex-direction:column; gap:12px;}
+.lk-stage.is-ok .lk-okwrap{opacity:1; transform:none;}
+.lk-glow{
+  position:absolute; left:50%; top:42%; width:90px; height:90px; margin:-45px 0 0 -45px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.45), rgba(255,255,255,0) 70%);
+  opacity:0; transform:scale(.3);
+}
+.lk-stage.is-ok .lk-glow{animation:lk-burst 1s ease-out;}
+@keyframes lk-burst{0%{opacity:.9; transform:scale(.3)} 100%{opacity:0; transform:scale(2.4)}}
+.lk-check{
+  position:relative; width:62px; height:62px; border-radius:50%;
+  display:grid; place-items:center; background:#fff; color:#000;
+  box-shadow:0 0 36px rgba(255,255,255,.25);
+}
+.lk-check svg{width:30px; height:30px;}
+.lk-stage.is-ok .lk-check{animation:lk-pop .5s cubic-bezier(.2,.9,.3,1.4);}
+@keyframes lk-pop{0%{transform:scale(.2)} 100%{transform:scale(1)}}
+.lk-badge{position:relative; padding:4px 11px; border-radius:99px; background:#fff; color:#000; font:700 10.5px/1.4 var(--sans); letter-spacing:.1em;}
+.lk-dot{
+  position:absolute; left:50%; top:42%; width:var(--ds); height:var(--ds); border-radius:50%;
+  background:#e5e5e7; opacity:0; animation:lk-dot 1s ease-out forwards;
+}
+@keyframes lk-dot{0%{opacity:1; transform:translate(0,0)} 100%{opacity:0; transform:translate(var(--dx),var(--dy))}}
+
+.lk-foot{min-height:22px; margin-top:12px; display:flex; flex-direction:column; align-items:center; gap:8px; font:400 13px/1.3 var(--sans); color:#6e6e76;}
+.lk-msg.bad{color:#ff8a8a;}
+.lk-cancel{background:none; border:0; padding:2px 6px; color:#a1a1aa; font:500 13px var(--sans); cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
+.lk-cancel:hover{color:#fff;}
+@media (max-width:380px){ .lk-box{width:46px; height:54px;} .lk-boxes{gap:9px;} }
+
+/* Águila de la pantalla de carga posada arriba del recuadro de la contraseña */
+.lk-logo-slot{width:68px; height:68px; margin:-6px auto 14px;}
+.intro.is-docked .intro-logo{filter:drop-shadow(0 0 14px rgba(255,255,255,.3));}
+
+/* Casillas girando en círculo (las mueve script_pc.js cuadro a cuadro) */
+.lk-box.orbit{
+  transition:none !important; pointer-events:none; will-change:transform, opacity;
+  background:#18181b; border-color:#e5e5e7; box-shadow:0 8px 22px rgba(255,255,255,.12);
+}
+/* Anillo de verificación: nace pequeño y lo rodea un halo que late */
+.lk-stage.is-ring .lk-ringwrap{animation:lk-ringin .5s cubic-bezier(.2,.9,.3,1.3);}
+@keyframes lk-ringin{0%{transform:scale(.25); opacity:0} 100%{transform:scale(1); opacity:1}}
+.lk-halo{
+  position:absolute; left:50%; top:50%; width:132%; height:132%; margin:-66% 0 0 -66%;
+  border-radius:50%; border:1px solid rgba(255,255,255,.22); opacity:0; pointer-events:none;
+}
+.lk-stage.is-ring .lk-halo{animation:lk-halo 1.3s ease-out infinite;}
+@keyframes lk-halo{0%{transform:scale(.85); opacity:.55} 100%{transform:scale(1.3); opacity:0}}
+
+
+/* =========================================================
+   Interruptor claro / oscuro (Ajustes → Apariencia)
+   Claro: píldora gris, perilla blanca con sol amarillo.
+   Oscuro: píldora blanca, perilla oscura con luna blanca.
+   ========================================================= */
+.mode-switch{
+  --ms-w:72px; --ms-h:38px; --ms-pad:4px;
+  --ms-k:calc(var(--ms-h) - var(--ms-pad) * 2);
+  --ms-spring:cubic-bezier(.34,1.5,.5,1);     /* rebote al llegar */
+  position:relative;
+  display:inline-block;
+  flex:none;
+  width:var(--ms-w);
+  height:var(--ms-h);
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.mode-switch input{
+  position:absolute; inset:0; z-index:3;
+  width:100%; height:100%; margin:0;
+  opacity:0; cursor:pointer;
+}
+.ms-track{
+  position:absolute; inset:0;
+  border-radius:999px;
+  background:#d9d9dd;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.22);
+  transition:background-color .6s ease, box-shadow .6s ease;
+}
+.mode-switch input:checked ~ .ms-track{
+  background:#383840;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.14);
+}
+
+/* La perilla se desliza con rebote; el disco de dentro se estira y se aplasta */
+.ms-knob{
+  position:absolute; z-index:1;
+  top:var(--ms-pad); left:var(--ms-pad);
+  width:var(--ms-k); height:var(--ms-k);
+  transition:transform .7s var(--ms-spring);
+}
+.mode-switch input:checked ~ .ms-knob{
+  transform:translateX(calc(var(--ms-w) - var(--ms-h)));
+}
+.ms-disc{
+  position:relative;
+  width:100%; height:100%;
+  display:grid; place-items:center;
+  border-radius:50%;
+  background:#ffffff;
+  box-shadow:0 1px 4px rgba(0,0,0,.28);
+  transition:background-color .6s ease, box-shadow .6s ease, transform .25s ease;
+}
+.mode-switch input:checked ~ .ms-knob .ms-disc{
+  background:#0e0e12;
+  box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 1px 4px rgba(0,0,0,.5);
+}
+.mode-switch:active .ms-disc{transform:scaleX(1.14);}   /* se "aprieta" al pulsar */
+.mode-switch.go .ms-disc{animation:ms-squish .7s ease;}
+@keyframes ms-squish{
+  0%  {transform:scale(1);}
+  30% {transform:scale(1.32,.84);}
+  65% {transform:scale(.92,1.08);}
+  100%{transform:scale(1);}
+}
+
+/* Iconos: el sol gira y se encoge al irse; la luna entra girando */
+.ms-icon{
+  position:absolute;
+  width:22px; height:22px;
+  transition:transform .7s var(--ms-spring), opacity .35s ease;
+  pointer-events:none;
+}
+.ms-sun{
+  fill:#f6c83d; stroke:#f6c83d; stroke-width:2; stroke-linecap:round;
+  opacity:1; transform:rotate(0) scale(1);
+}
+.ms-moon{
+  fill:#ffffff; stroke:none;
+  opacity:0; transform:rotate(-100deg) scale(.2);
+}
+.mode-switch input:checked ~ .ms-knob .ms-sun{opacity:0; transform:rotate(100deg) scale(.2);}
+.mode-switch input:checked ~ .ms-knob .ms-moon{opacity:1; transform:rotate(0) scale(1);}
+
+/* Los rayos del sol laten un poco al volver al modo claro */
+.mode-switch.go input:not(:checked) ~ .ms-knob .ms-sun{animation:ms-spin .9s ease;}
+@keyframes ms-spin{from{transform:rotate(-100deg) scale(.2);} to{transform:rotate(0) scale(1);}}
+
+/* Onda de luz alrededor de la píldora al cambiar */
+.mode-switch::after{
+  content:""; position:absolute; inset:0; z-index:0;
+  border-radius:999px; pointer-events:none; opacity:0;
+}
+.mode-switch.go::after{animation:ms-pulse .8s ease-out;}
+.mode-switch.go input:not(:checked) ~ .ms-track{box-shadow:inset 0 1px 3px rgba(0,0,0,.22);}
+@keyframes ms-pulse{
+  0%  {opacity:.9; box-shadow:0 0 0 0 rgba(250,200,60,.55);}
+  100%{opacity:0;  box-shadow:0 0 0 16px rgba(250,200,60,0);}
+}
+.mode-switch:has(input:checked).go::after{animation-name:ms-pulse-dark;}
+@keyframes ms-pulse-dark{
+  0%  {opacity:.9; box-shadow:0 0 0 0 rgba(255,255,255,.5);}
+  100%{opacity:0;  box-shadow:0 0 0 16px rgba(255,255,255,0);}
+}
+
+.mode-switch input:focus-visible ~ .ms-track{outline:2px solid #8ab4ff; outline-offset:3px;}
+
+/* Cambio de tema: un círculo que crece desde el botón (View Transitions; si no hay soporte, fundido) */
+::view-transition-old(root), ::view-transition-new(root){animation:none; mix-blend-mode:normal;}
+::view-transition-old(root){z-index:1;}
+::view-transition-new(root){z-index:2;}
+
+/* Fundido de respaldo: no debe tocar al propio interruptor */
+html.mode-anim, html.mode-anim *:not(.mode-switch):not(.mode-switch *), html.mode-anim *::before, html.mode-anim *::after{
+  transition:
+    background-color .45s ease,
+    color .45s ease,
+    border-color .45s ease,
+    box-shadow .45s ease,
+    fill .45s ease,
+    stroke .45s ease !important;
+}
+@media (prefers-reduced-motion:reduce){
+  .ms-track, .ms-knob, .ms-disc, .ms-icon{transition:none;}
+  .mode-switch.go .ms-disc, .mode-switch.go::after, .mode-switch.go .ms-sun{animation:none !important;}
+}
+
+
+/* =========================================================
+   Modo claro en el panel Personalizar, en Ajustes y en el aviso de cookies
+   (en oscuro se queda como estaba; el modo lo fija <html data-mode="light|dark">)
+   ========================================================= */
+
+/* ---------- Panel Personalizar: vidrio claro ---------- */
+:root[data-mode="light"] .cz-panel{
+  --cz-bg:     #ffffff;
+  --cz-panel:  rgba(0,0,0,.05);
+  --cz-border: rgba(0,0,0,.14);
+  --cz-ink:    #1b1b1f;
+  --cz-muted:  #565962;
+  --accent:    #4a4a52;
+  border-color:rgba(255,255,255,.75);
+  background:
+    radial-gradient(130% 62% at 0% 0%, rgba(255,255,255,.85), rgba(255,255,255,0) 58%),
+    radial-gradient(90% 55% at 100% 100%, rgba(255,255,255,.45), rgba(255,255,255,0) 62%),
+    rgba(246,245,250,.74);
+  box-shadow:
+    0 30px 70px rgba(30,35,70,.22),
+    0 6px 18px rgba(30,35,70,.10),
+    inset 1.5px 1.5px 0 rgba(255,255,255,.9),
+    inset -1px -1px 0 rgba(255,255,255,.5);
+  scrollbar-color:rgba(0,0,0,.28) transparent;
+  color-scheme:light;
+}
+:root[data-mode="light"] .cz-close:hover{background:rgba(0,0,0,.07);}
+:root[data-mode="light"] .cz-swatch{box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);}
+:root[data-mode="light"] .cz-swatch.selected{box-shadow:none;}
+:root[data-mode="light"] .cz-swatch.custom{border-color:rgba(0,0,0,.35);}
+:root[data-mode="light"] .cz-swatch.custom:hover{border-color:var(--cz-ink);}
+:root[data-mode="light"] .cz-swatch.custom.has-color{border-color:transparent;}
+:root[data-mode="light"] .cz-swatch.custom.selected{border-color:var(--cz-ink);}
+:root[data-mode="light"] .cz-pcolor{box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);}
+:root[data-mode="light"] .cz-dd-menu li.active{background:rgba(0,0,0,.07);}
+:root[data-mode="light"] .bgp-empty{background-image:repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 8px, rgba(0,0,0,.02) 8px 16px);}
+:root[data-mode="light"] .bgp-add .bgp-prev,
+:root[data-mode="light"] .bgp-pick .bgp-prev{border-color:rgba(0,0,0,.35);}
+:root[data-mode="light"] .bgp-back:hover{background:rgba(0,0,0,.07);}
+:root[data-mode="light"] .bgp-swatch{box-shadow:inset 0 0 0 1px rgba(0,0,0,.2);}
+:root[data-mode="light"] .cz-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.28); background-clip:padding-box;}
+:root[data-mode="light"] .cz-scroll::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.45); background-clip:padding-box;}
+:root[data-mode="light"] .cz-more{color:color-mix(in srgb, var(--ak-foot) 35%, #1b1b1f);}
+:root[data-mode="light"] .cz-more:hover{color:var(--cz-ink);}
+@media (prefers-reduced-transparency: reduce){
+  :root[data-mode="light"] .cz-panel{background:#ffffff;}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root[data-mode="light"] .cz-panel{background:rgba(250,250,252,.96);}
+}
+
+/* Interruptores de foco (panel y Ajustes) en claro */
+:root[data-mode="light"] .cz-switch,
+:root[data-mode="light"] .st-switch{
+  --off-track:#d3d3d9;
+  --on-track:#9a9ca8;
+  --off-bulb:#ffffff;
+}
+:root[data-mode="light"] .cz-switch .cz-slider,
+:root[data-mode="light"] .st-switch span{box-shadow:inset 0 2px 4px rgba(0,0,0,.18), inset 0 -1px 0 rgba(255,255,255,.5);}
+
+/* ---------- Pantalla de Ajustes ---------- */
+:root[data-mode="light"] .st{
+  --st-bg:#f6f5f2; --st-card:#ffffff; --st-inner:#efeef3; --st-line:rgba(0,0,0,.12);
+  --st-ink:#1b1b1f; --st-muted:#5d6068;
+  color-scheme:light;
+}
+:root[data-mode="light"] .st-nav button:hover{background:rgba(0,0,0,.06);}
+:root[data-mode="light"] .st-main,
+:root[data-mode="light"] .st-hist,
+:root[data-mode="light"] .st-doc-body{scrollbar-color:rgba(0,0,0,.28) transparent;}
+:root[data-mode="light"] .st-btn:hover{background:#e3e2e9;}
+:root[data-mode="light"] .st-item:hover,
+:root[data-mode="light"] .st-item:focus-visible{background:rgba(0,0,0,.07);}
+:root[data-mode="light"] .st-item[aria-selected="true"]{color:var(--st-ink);}
+:root[data-mode="light"] .st-hist-item:hover{background:rgba(0,0,0,.05);}
+:root[data-mode="light"] .st-modal{background:rgba(30,30,40,.35);}
+:root[data-mode="light"] .st-win{
+  background:#ffffff; border-color:rgba(0,0,0,.14);
+  box-shadow:0 30px 80px rgba(30,35,70,.28), inset 1px 1px 0 rgba(255,255,255,.9);
+}
+:root[data-mode="light"] .st-doc-body a,
+:root[data-mode="light"] .st-doc-link{color:color-mix(in srgb, var(--st-acc) 45%, #000);}
+:root[data-mode="light"] .st-doc-link:hover{color:var(--st-ink);}
+:root[data-mode="light"] .st-ck-dot{border-color:rgba(0,0,0,.28);}
+:root[data-mode="light"] .st-theme{border-color:var(--st-line);}
+/* El color de acento (botones, enlaces) conserva su texto legible sobre fondo claro */
+:root[data-mode="light"] .st-btn:not(.st-btn-danger):not(.armed){
+  background:color-mix(in srgb, var(--st-acc) 22%, #ffffff);
+}
+:root[data-mode="light"] .st-btn:not(.st-btn-danger):not(.armed):hover{background:var(--st-acc); color:var(--st-acc-ink);}
+
+/* ---------- Aviso de cookies ---------- */
+:root[data-mode="light"] .ck-banner{
+  background:rgba(255,255,255,.9); color:#1b1b1f;
+  border-color:rgba(0,0,0,.12); box-shadow:0 18px 50px rgba(30,35,70,.22);
+}
+:root[data-mode="light"] .ck-text p{color:#4d5058;}
+:root[data-mode="light"] .ck-link{color:color-mix(in srgb, var(--ak-acc, #b8a1ff) 45%, #000);}
+:root[data-mode="light"] .ck-btn{border-color:rgba(0,0,0,.25); background:rgba(0,0,0,.05); color:#1b1b1f;}
+:root[data-mode="light"] .ck-btn:hover{background:rgba(0,0,0,.1);}
+:root[data-mode="light"] .st-nav button.active,
+:root[data-mode="light"] .st-nav button.active:hover{background:var(--st-acc); color:var(--st-acc-ink);}
+
+/* ---------- Botones de borrar: el bote se come la etiqueta ---------- */
+.st-btn .st-bin{display:inline-flex; width:18px; height:18px; flex:none;}
+.st-btn .st-bin svg{width:100%; height:100%; overflow:visible;}
+.st-btn .bin-lid{transform-box:fill-box; transform-origin:0 100%; transition:transform .25s cubic-bezier(.3,1.4,.5,1);}
+.st-btn:has(.st-bin){display:inline-flex; align-items:center; justify-content:center; gap:8px; overflow:visible; transition:background .15s, width .45s cubic-bezier(.6,0,.2,1), padding .45s, border-radius .45s;}
+.st-btn .st-eat-l{display:inline-flex; white-space:pre;}
+.st-btn .st-eat-l span{display:inline-block;}
+.st-btn:has(.st-bin):hover .bin-lid{transform:rotate(-18deg) translate(-1px,-1px);}
+.st-btn.eating .bin-lid{transform:rotate(-32deg) translate(-1px,-2px);}
+.st-btn.eating .st-eat-l span{animation:stEat .42s cubic-bezier(.45,0,.75,.35) forwards; animation-delay:calc(var(--i) * 38ms + 120ms);}
+.st-btn.eating:not(.closed) .st-bin svg{animation:stChomp .2s ease-in-out infinite alternate;}
+.st-btn.eating.closed .bin-lid{transform:none;}
+.st-btn.eating.closed{padding-left:0; padding-right:0; overflow:hidden;}
+.st-btn.eating.closed .st-eat-l{display:none;}
+@keyframes stEat{
+  0%  {transform:translate(0,0) rotate(0) scale(1); opacity:1;}
+  35% {transform:translate(calc(var(--dx) * .3), calc(var(--dy) * .3 - 14px)) rotate(var(--r)) scale(1.1); opacity:1;}
+  100%{transform:translate(var(--dx), var(--dy)) rotate(var(--r)) scale(.15); opacity:0;}
+}
+@keyframes stChomp{from{transform:translateY(0) scale(1);} to{transform:translateY(1px) scale(1.08);}}
+@media (prefers-reduced-motion:reduce){
+  .st-btn .bin-lid{transition:none;}
+  .st-btn.eating .st-eat-l span, .st-btn.eating .st-bin svg{animation:none;}
+}
+
+/* Nivel de relleno del bote */
+.st-btn .bin-fill{fill:currentColor; stroke:none; opacity:.92; transform-box:fill-box; transform-origin:50% 100%; transform:scaleY(var(--fill, 0)); transition:transform .22s ease-out;}
+@media (prefers-reduced-motion:reduce){ .st-btn .bin-fill{transition:none;} }
+
+/* ---------- Ajustes en ventana reducida: barra lateral izquierda en vertical ----------
+   Solo iconos (el nombre sale al pasar el mouse); logo arriba y "volver" abajo. */
+@media (max-width:820px){
+  .st{grid-template-columns:76px minmax(0,1fr); grid-template-rows:none;}
+  .st-side{
+    flex-direction:column; align-items:center; gap:0; padding:16px 0 14px;
+    border-right:1px solid var(--st-line); border-bottom:0;
+    overflow-x:hidden; overflow-y:auto; scrollbar-width:none;
+  }
+  .st-side::-webkit-scrollbar{display:none;}
+  .st-title{margin:0 0 16px; flex:none;}
+  .st-title span{display:none;}
+  .st-nav{flex-direction:column; align-items:center; gap:6px; width:100%;}
+  .st-nav li{flex:none;}
+  .st-nav button{
+    width:48px; min-width:48px; height:48px; min-height:48px; padding:0; gap:0;
+    justify-content:center; border-radius:16px;
+  }
+  .st-nav .st-nl{display:none;}
+  .st-sep{display:block; width:28px; height:1px; margin:8px 0;}
+  .st-back{display:block; margin:auto 0 0; padding:16px 0 0; flex:none; width:100%;}
+  .st-back .st-nav{align-items:center;}
+  .st-main{padding:20px 16px 60px 14px;}
+}
+
+/* ---------- Pantalla reducida: enlaces solo con el logo (mosaicos de cristal) ---------- */
+@media (max-width:640px){
+  .grid{grid-template-columns:repeat(auto-fill, 80px); gap:14px; justify-content:start;}
+  .grid a{
+    position:relative; isolation:isolate;
+    width:80px; height:80px; padding:0; gap:0; justify-content:center;
+    font-size:0;                                   /* el texto sigue ahí para lectores de pantalla */
+    border-radius:22px;
+    border:1px solid rgba(255,255,255,.22);
+    background:
+      linear-gradient(150deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.05) 55%, rgba(255,255,255,.10) 100%),
+      var(--panel);
+    -webkit-backdrop-filter:blur(14px) saturate(1.3); backdrop-filter:blur(14px) saturate(1.3);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -10px 18px rgba(0,0,0,.10), 0 10px 22px rgba(0,0,0,.20);
+    transition:transform .28s cubic-bezier(.3,1.5,.5,1), box-shadow .28s, border-color .2s;
+  }
+  /* brillo de color detrás del logo, aparece al tocar o pasar el mouse */
+  .grid a::before{
+    content:""; position:absolute; inset:0; z-index:-1; border-radius:inherit; opacity:0;
+    background:radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent) 55%, transparent), transparent 70%);
+    transition:opacity .3s;
+  }
+  .grid img{
+    flex:none; max-width:56px; max-height:44px; width:auto; height:auto; object-fit:contain;
+    filter:drop-shadow(0 4px 7px rgba(0,0,0,.35));
+    transition:transform .3s cubic-bezier(.3,1.6,.5,1);
+  }
+  .grid a:hover, .grid a:focus-visible{
+    transform:translateY(-4px);
+    border-color:color-mix(in srgb, var(--accent) 70%, #fff 10%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent), 0 14px 30px color-mix(in srgb, var(--accent) 35%, rgba(0,0,0,.3));
+  }
+  .grid a:hover::before, .grid a:focus-visible::before{opacity:1;}
+  .grid a:hover img, .grid a:focus-visible img{transform:scale(1.14) rotate(-3deg);}
+  .grid a:active{transform:translateY(-1px) scale(.95);}
+  /* nombre en forma de globito */
+  .grid a::after{
+    content:attr(data-name); position:absolute; left:50%; top:calc(100% + 8px); z-index:5;
+    transform:translate(-50%, -4px) scale(.9); opacity:0; pointer-events:none; white-space:nowrap;
+    padding:5px 10px; border-radius:999px; font:500 12px/1 var(--sans);
+    color:#fff; background:rgba(20,20,26,.92); box-shadow:0 6px 16px rgba(0,0,0,.35);
+    transition:opacity .18s, transform .22s cubic-bezier(.3,1.5,.5,1);
+  }
+  .grid a:hover::after, .grid a:focus-visible::after{opacity:1; transform:translate(-50%, 0) scale(1);}
+}
+@media (max-width:640px) and (hover:none){ .grid a::after{display:none;} }
+@media (max-width:640px) and (prefers-reduced-motion:reduce){ .grid a, .grid img, .grid a::after{transition:none;} .grid a:hover img{transform:none;} }
+
+/* Secciones de la página principal apagadas desde Ajustes › Apariencia */
+.sec-hidden{display:none !important;}
+
+/* El botón en rojo ("¿Seguro? Clic otra vez") conserva su color aunque tengas el mouse encima, también en modo claro */
+.st-btn.danger.armed, .st-btn.danger.armed:hover, .st-btn.danger.armed:focus-visible,
+:root[data-mode="light"] .st-btn.danger.armed, :root[data-mode="light"] .st-btn.danger.armed:hover{
+  background:#c4455a; border-color:#c4455a; color:#fff;
+}
+
+/* Interruptores bloqueados mientras "Ocultar todo" está encendido */
+.st-row.st-off{opacity:.45; transition:opacity .25s;}
+.st-row.st-off .st-switch{pointer-events:none; cursor:not-allowed;}
+
+/* Lista larga (estados): con barra de desplazamiento y entrada rápida */
+.st-dd-tall .st-menu{max-height:min(56vh, 380px); overflow-y:auto; scrollbar-width:thin; overscroll-behavior:contain; min-width:230px;}
+.st-dd-tall.open .st-item{transition-delay:0s, calc(min(var(--i), 8) * 28ms + 40ms), calc(min(var(--i), 8) * 28ms + 40ms);}
+
+/* Listas desplegables legibles en modo claro */
+:root[data-mode="light"] .st-menu{background:#ffffff; color:#1b1a20; box-shadow:0 18px 40px rgba(0,0,0,.18);}
+:root[data-mode="light"] .st-item:hover, :root[data-mode="light"] .st-item:focus-visible{background:rgba(0,0,0,.07);}
+:root[data-mode="light"] .st-item[aria-selected="true"]{background:color-mix(in srgb, var(--st-acc) 30%, #fff); color:#1b1a20;}
+/* Hora (Ajustes): interruptores bloqueados y campos de fecha/hora */
+.st-row.st-off .st-dd{pointer-events:none;}
+.st-select:disabled{cursor:not-allowed;}
+.st-lock-actions{align-items:center;}
+.st-input{
+  min-width:0; padding:9px 12px; border:1px solid color-mix(in srgb, var(--st-acc) 55%, transparent); border-radius:12px;
+  background:var(--st-inner); color:inherit; font:500 15px var(--sans); color-scheme:dark;
+  user-select:text; -webkit-user-select:text;
+}
+.st-input:focus-visible{outline:2px solid var(--st-ink); outline-offset:2px;}
+:root[data-mode="light"] .st-input{color-scheme:light;}
+.st-btn:disabled{opacity:.45; cursor:default;}
+
+/* Hora actual (Ajustes): campos y botones ordenados */
+.st-row.st-time{display:block; padding-top:6px;}
+.st-time-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.st-field{display:flex; flex-direction:column; gap:8px; min-width:0; font-size:13px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--st-muted);}
+.st-field .st-input{
+  width:100%; padding:14px 16px; border-radius:16px; font:500 20px var(--sans); letter-spacing:0; text-transform:none;
+  border-color:var(--st-line); font-variant-numeric:tabular-nums; cursor:text;
+  transition:border-color .2s, box-shadow .2s, background .2s;
+}
+.st-field .st-input:hover{border-color:color-mix(in srgb, var(--st-acc) 60%, transparent);}
+.st-field .st-input:focus{outline:0; border-color:var(--st-acc); box-shadow:0 0 0 3px color-mix(in srgb, var(--st-acc) 28%, transparent);}
+.st-input::-webkit-calendar-picker-indicator{cursor:pointer; opacity:.75; filter:invert(1); transition:opacity .15s;}
+.st-input::-webkit-calendar-picker-indicator:hover{opacity:1;}
+:root[data-mode="light"] .st-input::-webkit-calendar-picker-indicator{filter:none;}
+.st-time-foot{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:20px;}
+.st-btn.st-primary:not(.st-btn-danger):not(.armed){background:var(--st-acc); border-color:var(--st-acc); color:var(--st-acc-ink);}
+.st-btn.st-primary:not(.st-btn-danger):not(.armed):hover{filter:brightness(1.1); background:var(--st-acc); color:var(--st-acc-ink);}
+.st-pill{
+  display:inline-flex; align-items:center; gap:8px; margin-left:auto; padding:7px 14px; border-radius:999px;
+  border:1px solid var(--st-line); background:var(--st-inner); color:var(--st-muted); font:500 13px var(--sans);
+}
+.st-pill::before{content:""; width:8px; height:8px; border-radius:50%; background:currentColor; opacity:.6;}
+.st-pill.on{color:var(--st-ink); border-color:color-mix(in srgb, var(--st-acc) 60%, transparent);}
+.st-pill.on::before{background:var(--st-acc); opacity:1; box-shadow:0 0 8px var(--st-acc);}
+@media (max-width:520px){ .st-time-grid{grid-template-columns:1fr;} .st-pill{margin-left:0;} }
+
+/* Inicio (Ajustes): mensaje de bienvenida con el logo */
+.st-hero{
+  position:relative; isolation:isolate; display:flex; align-items:center; gap:22px; min-height:104px; padding:0 30px 0 0; overflow:hidden;
+  border:1px solid var(--st-line); border-radius:20px;
+  background:linear-gradient(120deg, color-mix(in srgb, var(--st-acc) 16%, var(--st-inner)), var(--st-inner) 72%);
+}
+/* Destello suave que cruza la tarjeta de vez en cuando */
+.st-hero::after{
+  content:""; position:absolute; top:0; bottom:0; left:0; width:45%; z-index:-1; pointer-events:none;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.10), transparent);
+  transform:translate3d(-120%,0,0); will-change:transform;
+  animation:stHeroSheen 7s cubic-bezier(.4,0,.2,1) 1.4s infinite;
+}
+.st-hero-logo{
+  flex:none; width:108px; height:104px; margin-left:10px; align-self:flex-end; object-fit:contain;
+  will-change:transform; backface-visibility:hidden; transform:translate3d(0,0,0);   /* sin filtros: así el movimiento se queda en la tarjeta de video y es fluido */
+}
+.st-hero-heart{
+  z-index:1;
+  position:absolute; left:92px; top:12px; width:28px; height:28px; color:var(--st-acc);
+  will-change:transform; backface-visibility:hidden; transform:translate3d(0,0,0);
+}
+.st-hero-heart::before{content:""; position:absolute; inset:-9px; border-radius:50%; z-index:-1; background:radial-gradient(circle, color-mix(in srgb, var(--st-acc) 45%, transparent), transparent 68%);}
+.st-hero-heart svg{display:block; width:100%; height:100%;}
+.st-hero-text{display:flex; flex-direction:column; gap:5px; padding:20px 0; min-width:0;}
+.st-hero-text strong{font:600 17px/1.35 var(--sans); letter-spacing:-.005em;}
+.st-hero-text span{font:400 14px/1.4 var(--sans); color:var(--st-muted);}
+
+/* Entrada: el logo llega deslizándose con un pequeño rebote, el corazón aparece y el texto sube en cascada */
+.st-page.show .st-hero-logo{animation:stHeroLogoIn .9s cubic-bezier(.22,1.2,.36,1) both, stHeroFloat 5s cubic-bezier(.45,0,.55,1) 1s infinite;}
+.st-page.show .st-hero-heart{animation:stHeroHeartIn .7s cubic-bezier(.34,1.56,.64,1) .45s both, stHeroBeat 2.6s ease-in-out 1.3s infinite;}
+.st-page.show .st-hero-text strong{animation:stHeroTextIn .8s cubic-bezier(.16,1,.3,1) .25s both;}
+.st-page.show .st-hero-text span{animation:stHeroTextIn .8s cubic-bezier(.16,1,.3,1) .4s both;}
+@keyframes stHeroLogoIn{from{opacity:0; transform:translate3d(-36px,0,0) scale(.85);} to{opacity:1; transform:translate3d(0,0,0);}}
+@keyframes stHeroHeartIn{from{opacity:0; transform:translate3d(0,0,0) scale(0) rotate(-25deg);} to{opacity:1; transform:translate3d(0,0,0);}}
+@keyframes stHeroTextIn{from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:none;}}
+@keyframes stHeroFloat{0%,100%{transform:translate3d(0,0,0);} 50%{transform:translate3d(0,-8px,0);}}
+@keyframes stHeroBeat{0%,100%{transform:translate3d(0,0,0) scale(1);} 14%{transform:translate3d(0,0,0) scale(1.16);} 28%{transform:translate3d(0,0,0) scale(1.03);} 42%{transform:translate3d(0,0,0) scale(1.1);} 60%{transform:translate3d(0,0,0) scale(1);}}
+@keyframes stHeroSheen{0%{transform:translate3d(-120%,0,0);} 35%,100%{transform:translate3d(330%,0,0);}}
+@media (max-width:520px){ .st-hero{gap:14px; padding-right:18px;} .st-hero-logo{width:82px; height:80px;} .st-hero-heart{left:68px; width:24px; height:24px;} .st-hero-text strong{font-size:15px;} .st-hero-text span{font-size:13px;} }
+@media (prefers-reduced-motion:reduce){ .st-hero::after, .st-page.show .st-hero-logo, .st-page.show .st-hero-heart, .st-page.show .st-hero-text strong, .st-page.show .st-hero-text span{animation:none;} }
+html.reduce-motion .st-hero::after,
+html.reduce-motion .st-page.show .st-hero-logo,
+html.reduce-motion .st-page.show .st-hero-heart,
+html.reduce-motion .st-page.show .st-hero-text strong,
+html.reduce-motion .st-page.show .st-hero-text span{animation:none !important;}
+
+/* Frase del pie (Ajustes → Apariencia) */
+.st-input.st-wide{width:100%; padding:14px 16px; border-radius:16px; font-size:17px; border-color:var(--st-line); transition:border-color .2s, box-shadow .2s;}
+.st-input.st-wide:hover{border-color:color-mix(in srgb, var(--st-acc) 60%, transparent);}
+.st-input.st-wide:focus{outline:0; border-color:var(--st-acc); box-shadow:0 0 0 3px color-mix(in srgb, var(--st-acc) 28%, transparent);}
+.st-count{margin-left:auto; color:var(--st-muted); font:500 13px var(--sans); font-variant-numeric:tabular-nums;}
+/* ---------- Botón "Personalizar": la línea bajo el lápiz solo se ve con el botón cerrado ---------- */
+.fab-icon .pencil-line{transition:opacity .25s ease;}
+.fab:focus-visible .fab-icon .pencil-line{opacity:0;}
+@media (hover:hover){
+  .fab:hover .fab-icon .pencil-line{opacity:0;}
+}
+
+/* Con el panel abierto, el botón "Personalizar" se oculta por completo (se cierra con la × o haciendo clic fuera) */
+.fab{
+  transition:
+    right .6s cubic-bezier(.16, 1, .3, 1),
+    transform .4s cubic-bezier(.34, 1.4, .64, 1),
+    background-color .35s ease,
+    border-color .35s ease,
+    box-shadow .45s ease,
+    opacity .3s ease,
+    visibility 0s linear 0s;
+}
+.fab.shifted,
+.fab[aria-expanded="true"]{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:
+    right .6s cubic-bezier(.16, 1, .3, 1),
+    transform .4s cubic-bezier(.34, 1.4, .64, 1),
+    opacity .3s ease,
+    visibility 0s linear .3s;
+}
+
+/* ---------- Panel "Personalizar": vista de categoría a panel completo (estilo Firefox) ---------- */
+/* Con una categoría abierta (Celestial, Abstractos...) solo se ve la flecha, el título y las imágenes. */
+.cz-panel.cat-view .cz-hide-in-cat{display:none;}
+.cz-panel.cat-view .cz-cat-sec{border-top:none; padding-top:0;}
+.cz-panel.cat-view #bgGrid{margin-top:0;}
+.cz-panel.cat-view .cz-scroll{inset:20px 6px 20px 0;}                /* sin el enlace de abajo, usa todo el alto */
+.cz-panel.cat-view .bgp-head{margin-bottom:18px;}
+.cz-panel.cat-view .bgp-cat .bgp-grid{gap:14px 12px;}                /* miniaturas más juntas y grandes */
+
+/* ---------- Panel "Personalizar": vista "Más colores" a panel completo (estilo Firefox) ---------- */
+/* Al pulsar el "+" de Apariencia solo se ve la flecha, el título y la paleta de colores. */
+.theme-view-box{display:none;}
+.cz-panel.theme-view .theme-view-box{display:block;}
+.cz-panel.theme-view .cz-head,
+.cz-panel.theme-view .cz-foot,
+.cz-panel.theme-view .cz-scroll > .cz-section{display:none;}
+.cz-panel.theme-view .cz-scroll{inset:20px 6px 20px 0;}
+.theme-view-box .bgp-head{margin-bottom:18px;}
+.theme-view-box .cz-palette{
+  margin-top:0; padding:0;
+  background:none; border:none;
+  gap:10px 7px;
+}
+
+/* ---------- Muestras de Apariencia: forma de gota (esquina inferior izquierda menos redonda), como en Firefox ---------- */
+.cz-swatch{border-radius:50% 50% 50% 22%;}
+
+/* Mismos colores de la vista "Más colores" con forma de gota */
+.cz-pcolor{border-radius:50% 50% 50% 22%;}
+
+/* ---------- Apariencia: fila "Ver más colores" (en lugar del botón "+") ---------- */
+.cz-more-themes{
+  flex:1 0 100%;                                  /* ocupa todo el ancho: queda en su propia línea bajo las muestras */
+  display:flex; align-items:center; gap:10px;
+  margin-top:4px; padding:13px 16px;
+  background:transparent;
+  border:1px solid var(--cz-border);
+  border-radius:14px;
+  font-family:var(--sans); font-size:14.5px; text-align:left;
+  color:var(--cz-ink); cursor:pointer;
+  transition:background .2s ease, border-color .2s ease;
+}
+.cz-more-label{flex:1;}
+.cz-more-themes svg{width:18px; height:18px; flex-shrink:0; transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.cz-more-themes:hover{background:rgba(255,255,255,.10); border-color:var(--cz-muted);}
+.cz-more-themes:hover svg{transform:translateX(3px);}
+.cz-more-themes:active{background:rgba(255,255,255,.16);}
+.cz-more-themes:focus-visible{outline:2px solid var(--cz-ink); outline-offset:2px;}
+/* Si elegiste un color de la paleta, aparece un puntito con ese color junto a la flecha */
+.cz-more-dot{
+  display:none; width:16px; height:16px;
+  background:var(--more-color, transparent);
+  border-radius:50% 50% 50% 22%;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);
+}
+.cz-more-themes.has-color .cz-more-dot{display:block;}
+.cz-more-themes.selected{border-color:var(--cz-ink);}
+:root[data-mode="light"] .cz-more-themes:hover{background:rgba(0,0,0,.06);}
+
+/* ---------- Panel "Personalizar": un poco más ancho (así las 6 muestras de color caben en una sola fila) ---------- */
+.cz-panel{width:min(360px, calc(100vw - 28px));}
+
+/* ---------- Ajustes → Acerca de → Atajos: lista de teclas ---------- */
+.st-keys{list-style:none; margin:10px 0 0; padding:0; display:grid; gap:8px;}
+.st-keys li{display:grid; grid-template-columns:118px 1fr; align-items:center; gap:12px;}
+.st-key{
+  justify-self:start;
+  padding:3px 10px;
+  border:1px solid var(--st-line);
+  border-radius:8px;
+  background:color-mix(in srgb, currentColor 7%, transparent);
+  font:inherit; font-size:13px; line-height:1.4;
+  color:inherit; white-space:nowrap;
+}
+@media (max-width:480px){
+  .st-keys li{grid-template-columns:1fr; gap:4px;}
+}
+
+/* ---------- Aviso de Ctrl + V dentro de Ajustes ---------- */
+.warn-toast{
+  position:fixed; left:50%; top:calc(24px + env(safe-area-inset-top, 0px)); z-index:100;
+  display:flex; align-items:center; gap:10px;
+  max-width:min(440px, calc(100vw - 32px));
+  padding:12px 18px;
+  border:1px solid rgba(255,255,255,.18); border-radius:16px;
+  background:#2a2931; color:#fbfbfe;
+  font:500 14px/1.4 var(--sans);
+  box-shadow:0 14px 34px rgba(0,0,0,.4);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transform:translate(-50%, -14px);
+  transition:opacity .25s ease, transform .35s cubic-bezier(.22,1,.36,1), visibility 0s linear .35s;
+}
+.warn-toast svg{flex:none; width:20px; height:20px; color:#f2b84b;}
+.warn-toast.show{
+  opacity:1; visibility:visible;
+  transform:translate(-50%, 0);
+  transition:opacity .25s ease, transform .35s cubic-bezier(.22,1,.36,1), visibility 0s;
+}
+:root[data-mode="light"] .warn-toast{background:#fff; color:#1b1b1f; border-color:rgba(0,0,0,.14); box-shadow:0 14px 34px rgba(0,0,0,.18);}
+:root[data-mode="light"] .warn-toast svg{color:#b7791f;}
+@media (prefers-reduced-motion:reduce){ .warn-toast, .warn-toast.show{transition:none;} }
+
+
+/* ---------- Páginas de error: 404 (falta un archivo o más de 5 imágenes) y 106 (sin internet) ---------- */
+/* Usan su propio modo claro/oscuro: siempre el del sistema (prefers-color-scheme), no el de Ajustes. */
+.err{
+  --e-bg:#ffffff; --e-ink:#1b1b1f; --e-muted:#5a5f69; --e-green:#39ac31;
+  --e-art:url('images/bg.gif');                 /* dibujo con fondo blanco: modo claro */
+  display:none;
+  position:fixed; inset:0; z-index:400;
+  overflow:auto;
+  padding:40px 16px;
+  background:var(--e-bg); color:var(--e-ink);
+  font-family:'Poppins', var(--sans, system-ui), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  .err{
+    --e-bg:#14161a;                      /* el mismo color que lleva integrado bg-dark.gif, para que no se note el borde */
+    --e-ink:#f2f2f4; --e-muted:#a9acb4;
+    --e-art:url('images/bg-dark.gif');          /* versión oscura del dibujo */
+  }
+}
+.err.is-open{display:flex;}
+/* Si script_pc.js no cargó, la pantalla 404 aparece sola a los 8 s (la página no inicia) */
+.intro:not(.js-ok) ~ .err{display:flex; opacity:0; animation:errNoJs .01s linear 8s forwards;}
+@keyframes errNoJs{to{opacity:1;}}
+
+.err-page{width:100%; max-width:800px; margin:auto; text-align:center;}
+/* Escena: el dibujo animado con el número encima (se ve la franja central del GIF) */
+.err-scene{position:relative; width:100%; aspect-ratio:2 / 1;}
+.err-art{position:absolute; inset:0; background:var(--e-art) center / 100% auto no-repeat;}
+.err-scene h1{
+  position:absolute; top:0; left:0; right:0;
+  font-size:clamp(56px, 12vw, 80px); line-height:1.15; font-weight:700;
+  color:var(--e-ink);
+}
+.err-box{position:relative; margin-top:-28px;}
+.err-box h2{font-size:clamp(22px, 5vw, 30px); font-weight:600; margin-bottom:8px;}
+.err-box p{color:var(--e-muted); font-size:16px; line-height:1.5; margin-bottom:6px;}
+.err-box .err-detail{
+  display:inline-block; max-width:100%;
+  margin:6px 0 4px; padding:4px 12px;
+  border:1px solid color-mix(in srgb, var(--e-muted) 45%, transparent); border-radius:999px;
+  font:13px/1.6 ui-monospace, Consolas, monospace;
+  overflow-wrap:anywhere;
+}
+.err-box .err-detail[hidden]{display:none;}
+/* Botón "Reintentar": píldora verde con degradado, brillo suave, icono que gira y barrido de luz al pasar el mouse */
+.err-btn{
+  position:relative; overflow:hidden;
+  display:inline-flex; align-items:center; gap:10px;
+  margin-top:20px; padding:13px 30px;
+  border-radius:999px;
+  background:linear-gradient(135deg, #4cc943 0%, #39ac31 55%, #2d9327 100%);
+  color:#fff; text-decoration:none;
+  font-size:15px; font-weight:600; letter-spacing:.2px;
+  box-shadow:0 10px 24px -8px rgba(57, 172, 49, .7), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, filter .25s ease;
+}
+.err-btn svg{width:18px; height:18px; flex:none; transition:transform .5s cubic-bezier(.34,1.56,.64,1);}
+.err-btn::after{                         /* barrido de luz */
+  content:''; position:absolute; top:0; bottom:0; left:-60%; width:40%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.4), transparent);
+  transform:skewX(-20deg);
+  transition:left .6s ease;
+}
+.err-btn:hover{
+  color:#fff; transform:translateY(-3px);
+  box-shadow:0 16px 30px -8px rgba(57, 172, 49, .85), inset 0 1px 0 rgba(255,255,255,.4);
+  filter:brightness(1.05);
+}
+.err-btn:hover svg{transform:rotate(180deg);}
+.err-btn:hover::after{left:130%;}
+.err-btn:active{transform:translateY(0) scale(.97); box-shadow:0 6px 14px -6px rgba(57, 172, 49, .8);}
+.err-btn:focus-visible{outline:2px solid var(--e-ink); outline-offset:4px;}
+
+/* Entrada: al abrirse la pantalla de error, el fondo aparece suave, el dibujo sube, el número "salta"
+   y los textos y el botón van entrando uno tras otro. */
+.err.is-open{animation:errFade .45s ease both;}
+.err.is-open .err-scene{animation:errRise .8s cubic-bezier(.22,1,.36,1) .05s both;}
+.err.is-open .err-scene h1{animation:errPop .7s cubic-bezier(.34,1.56,.64,1) .3s both;}
+.err.is-open .err-box > *{animation:errUp .6s cubic-bezier(.22,1,.36,1) both;}
+.err.is-open .err-box > :nth-child(1){animation-delay:.45s;}
+.err.is-open .err-box > :nth-child(2){animation-delay:.55s;}
+.err.is-open .err-box > :nth-child(3){animation-delay:.65s;}
+.err.is-open .err-box > :nth-child(4){animation-delay:.75s;}
+@keyframes errFade{from{opacity:0;}}
+@keyframes errRise{from{opacity:0; transform:translateY(40px) scale(.96);}}
+@keyframes errPop{from{opacity:0; transform:scale(.4);}}
+@keyframes errUp{from{opacity:0; transform:translateY(18px);}}
+html.reduce-motion .err, html.reduce-motion .err *{animation:none !important; transition:none !important;}
+@media (prefers-reduced-motion: reduce){ .err, .err *{animation:none !important; transition:none !important;} }
+
+/* ---------- Ajustes → Apariencia → Dispositivo ---------- */
+.st-chip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:7px 14px;
+  border:1px solid var(--st-line); border-radius:999px;
+  background:var(--st-inner);
+  font-size:14px; font-weight:600; white-space:nowrap;
+}
+.st-chip svg{width:18px; height:18px; flex:none; color:var(--st-acc);}
+@media (max-width:560px){ .st-chip{white-space:normal;} }
+
+/* Celular: valores por defecto (ocultos). Las reglas del celular viven en style_mov.css */
+.mnav{display:none;}
+.st-mback{display:none;}
+.st-sclear{display:none;}
+.st-bgwrap{display:none;}

@@ -1,0 +1,305 @@
+/* style_mov.css — estilos exclusivos del modo celular (Beta). Solo actúan con <html data-device="mobile"> o dentro de la barra de navegación .mnav. */
+
+/* =========================================================
+   CELULAR (html[data-device="mobile"]): barra de navegación "líquida" con 3 pestañas
+   - Inicio:   logo (con el cambio de buscador), hora, clima y la barra de búsqueda
+   - Enlaces:  el logo con el nombre, los accesos directos y las secciones (Redes, Google, IA, Herramientas)
+   - Ajustes:  abre la pantalla de Ajustes
+   Estilo "liquid glass" (cristal translúcido). El dispositivo lo decide script_mov.js (Ajustes → Apariencia → Dispositivo).
+   ========================================================= */
+html[data-device="mobile"] .mnav{
+  --mn-ink:#ffffff;
+  display:block;
+  position:fixed; z-index:70;
+  left:50%; bottom:calc(14px + env(safe-area-inset-bottom, 0px));
+  width:min(calc(100vw - 28px), 420px); height:64px;
+  transform:translateX(-50%);
+  -webkit-user-select:none; user-select:none;
+  /* OJO: aquí no va "filter" ni "opacity": rompen el desenfoque del cristal (backdrop-filter) de los hijos */
+}
+/* Liquid glass: la barra es un cristal translúcido que desenfoca y satura lo que hay detrás.
+   Su forma (con el hueco) la recorta script_mov.js con clip-path, igual que el dibujo del borde. */
+.mnav-shadow, .mnav-rim{position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none;}
+.mnav-shadow{filter:blur(12px); transform:translateY(10px);}
+.mnav-shadow path{fill:rgba(0,0,0,.4);}
+.mnav-glass{
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.08) 42%, rgba(18,20,30,.2) 100%);
+  -webkit-backdrop-filter:blur(20px) saturate(1.9) brightness(1.08);
+  backdrop-filter:blur(20px) saturate(1.9) brightness(1.08);
+}
+.mnav-rim path{fill:none; stroke:url(#mnavRimGrad); stroke-width:1.3;}   /* borde de luz: brillante arriba a la izquierda */
+.mnav-bubble{
+  position:absolute; left:0; top:-22px;                  /* top = (bajada del centro) - (radio): ver CY y R en script_mov.js */
+  width:52px; height:52px; border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,.8) 0%, rgba(255,255,255,.3) 36%, rgba(255,255,255,.1) 100%);
+  -webkit-backdrop-filter:blur(8px) saturate(2) brightness(1.15);
+  backdrop-filter:blur(8px) saturate(2) brightness(1.15);
+  border:1px solid rgba(255,255,255,.55);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.9),               /* reflejo de arriba */
+    inset 0 -9px 14px rgba(255,255,255,.16),            /* luz que sube desde abajo */
+    0 8px 18px rgba(0,0,0,.3);
+  will-change:transform; pointer-events:none;
+}
+.mnav-row{position:absolute; inset:0; display:flex; padding:0 18px;}
+.mnav-item{
+  position:relative; flex:1;
+  background:none; border:0; padding:0; margin:0;
+  color:var(--mn-ink); font:inherit; cursor:pointer;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+}
+.mnav-item:focus-visible{outline:2px solid var(--mn-ink); outline-offset:-6px; border-radius:18px;}
+.mnav-ico{
+  position:absolute; left:50%; top:20px; width:24px; height:24px; margin-left:-12px;
+  transition:transform .3s ease;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));
+}
+.mnav-ico svg{display:block; width:24px; height:24px;}
+.mnav-item.active .mnav-ico{
+  transform:translateY(-28px);                            /* sube hasta el centro de la burbuja */
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1) .16s;
+}
+.mnav-label{
+  position:absolute; left:0; right:0; top:43px;
+  text-align:center; font-size:11px; font-weight:600; letter-spacing:.2px;
+  text-shadow:0 1px 3px rgba(0,0,0,.55);
+  opacity:0; transform:translateY(6px);
+  transition:opacity .15s ease, transform .15s ease;
+}
+.mnav-item.active .mnav-label{opacity:1; transform:none; transition:opacity .3s ease .22s, transform .35s ease .22s;}
+
+/* Qué se ve en cada pestaña (solo se oculta lo que no toca; lo que tú apagaste en Ajustes sigue apagado) */
+html[data-device="mobile"] body[data-mtab="home"] #shortcuts,
+html[data-device="mobile"] body[data-mtab="home"] main > section,
+html[data-device="mobile"] body[data-mtab="home"] footer,
+html[data-device="mobile"] body[data-mtab="links"] .hero,
+html[data-device="mobile"] body[data-mtab="links"] .search{display:none !important;}
+html[data-device="mobile"] main{padding-bottom:calc(112px + env(safe-area-inset-bottom, 0px));}
+
+/* El botón "Personalizar" no se muestra en el celular, y el aviso de cookies sube para no tapar la barra */
+html[data-device="mobile"] .fab{display:none !important;}
+html[data-device="mobile"] .ck-banner{bottom:calc(96px + env(safe-area-inset-bottom, 0px));}
+
+@media (prefers-reduced-motion:reduce){
+  .mnav-ico, .mnav-label, .mnav-item.active .mnav-ico, .mnav-item.active .mnav-label{transition:none !important;}
+}
+html.reduce-motion .mnav-ico, html.reduce-motion .mnav-label{transition:none !important;}
+
+/* ---------- Celular: el menú de buscadores en cuadrícula de 3 columnas (3 + 3 + 1, sin tener que desplazarse) ---------- */
+html[data-device="mobile"] .engine-menu{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:6px;
+  padding:8px;
+}
+html[data-device="mobile"] .engine-menu button{
+  flex-direction:column; justify-content:flex-start;
+  gap:8px;
+  padding:14px 4px 12px;
+  border-radius:12px;
+  font-size:12.5px; line-height:1.25; text-align:center;
+  overflow-wrap:anywhere;
+}
+html[data-device="mobile"] .engine-menu img{width:26px; height:26px; margin-right:0;}
+html[data-device="mobile"] .engine-menu button.current{background:var(--glass-item-hover, rgba(255,255,255,.1));}
+/* Sin el desplazamiento lateral de la lista: en cuadrícula solo se hunde un poco al tocar */
+html[data-device="mobile"] .engine-menu button:hover,
+html[data-device="mobile"] .engine-menu button:focus-visible{transform:none;}
+html[data-device="mobile"] .engine-menu button:active{transform:scale(.95);}
+
+/* Celular: se quita el pie de página ("El buen trabajo empieza con calma." y la firma) en todas las pestañas */
+html[data-device="mobile"] footer{display:none !important;}
+
+/* =========================================================
+   CELULAR: Ajustes como lista de secciones (estilo ajustes del iPhone)
+   - Lista:   título grande "Ajustes", buscador y las secciones en tarjetas con icono y flecha ›
+   - Sección: botón "‹ Ajustes" arriba y la página de esa sección (las tarjetas de siempre)
+   - La barra de navegación de abajo se queda visible, con el engranaje activo.
+   Las clases m-page / m-search las pone script_mov.js.
+   ========================================================= */
+html[data-device="mobile"] .mnav{z-index:95;}                       /* por encima de Ajustes (z-index 90) */
+html[data-device="mobile"]:has(.st-modal.open) .mnav{opacity:0; pointer-events:none;}   /* con una ventana abierta dentro de Ajustes, la barra se aparta */
+
+html[data-device="mobile"] .st{
+  display:flex; flex-direction:column;
+  overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain;
+  padding:0 16px calc(118px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling:touch;
+}
+/* Los tres bloques de siempre (lateral, centro y columna) se "disuelven" para poder ordenar sus piezas */
+html[data-device="mobile"] .st-side,
+html[data-device="mobile"] .st-main,
+html[data-device="mobile"] .st-col{display:contents;}
+html[data-device="mobile"] .st-back{display:none;}                  /* "Volver a la página": ya lo hace la barra de abajo */
+
+/* Orden: ‹ Ajustes · título · buscador · lista · página · "sin resultados" */
+html[data-device="mobile"] .st-mback{order:-1;}
+html[data-device="mobile"] .st-title{order:0;}
+html[data-device="mobile"] .st-search{order:1;}
+html[data-device="mobile"] .st-side > .st-nav{order:2;}
+html[data-device="mobile"] .st-page{order:3;}
+html[data-device="mobile"] .st-empty{order:4;}
+
+/* Título grande */
+html[data-device="mobile"] .st-title{
+  margin:0; padding:calc(env(safe-area-inset-top, 0px) + 26px) 4px 16px;
+  font:700 34px/1.1 var(--sans);
+}
+html[data-device="mobile"] .st-title span{display:inline;}
+html[data-device="mobile"] .st-title img{width:36px; height:36px;}
+
+/* Buscador */
+html[data-device="mobile"] .st-search{margin:0 0 20px; width:100%;}
+html[data-device="mobile"] .st-search input{font-size:17px;}
+
+/* Lista de secciones: tarjetas con filas (icono, nombre y flecha) */
+html[data-device="mobile"] .st-side > .st-nav{display:flex; flex-direction:column; align-items:stretch; gap:0; width:100%;}
+html[data-device="mobile"] .st-side > .st-nav li{width:100%; flex:none;}
+html[data-device="mobile"] .st-side > .st-nav li{background:var(--st-card);}
+html[data-device="mobile"] .st-side > .st-nav li:not(.st-sep){border:1px solid var(--st-line); border-top:0; border-bottom:0;}
+html[data-device="mobile"] .st-side > .st-nav li:first-child,
+html[data-device="mobile"] .st-side > .st-nav li.st-sep + li{border-top:1px solid var(--st-line); border-radius:20px 20px 0 0;}
+html[data-device="mobile"] .st-side > .st-nav li:last-child,
+html[data-device="mobile"] .st-side > .st-nav li:has(+ .st-sep){border-bottom:1px solid var(--st-line); border-radius:0 0 20px 20px;}
+html[data-device="mobile"] .st-side > .st-nav li:not(.st-sep) + li:not(.st-sep){box-shadow:inset 0 1px 0 var(--st-line);}
+html[data-device="mobile"] .st-side > .st-nav li.st-sep{display:block; height:22px; background:none; border:0; box-shadow:none; margin:0;}
+html[data-device="mobile"] .st-side > .st-nav button{
+  display:flex; align-items:center; gap:14px;
+  width:100%; min-width:0; height:auto; min-height:58px; padding:12px 16px;
+  justify-content:flex-start;
+  border-radius:inherit; background:none;
+  font-size:16.5px; font-weight:500; white-space:normal; text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+html[data-device="mobile"] .st-side > .st-nav button svg{                     /* icono dentro de un cuadrito con el color del tema */
+  box-sizing:content-box; width:20px; height:20px; padding:7px;
+  border-radius:11px;
+  background:color-mix(in srgb, var(--st-acc) 22%, transparent);
+  color:var(--st-acc);
+}
+html[data-device="mobile"] .st-side > .st-nav .st-nl{display:block; flex:1; min-width:0;}   /* el nombre de la sección (otras reglas de pantalla chica lo ocultan) */
+html[data-device="mobile"] .st-side > .st-nav button::after{                  /* flecha › */
+  content:''; flex:none; width:8px; height:8px; margin-right:4px;
+  border-right:2px solid var(--st-muted); border-bottom:2px solid var(--st-muted);
+  transform:rotate(-45deg);
+}
+html[data-device="mobile"] .st-side > .st-nav button:active{background:color-mix(in srgb, var(--st-acc) 16%, transparent);}
+html[data-device="mobile"] .st-side > .st-nav button.active{background:none; color:inherit;}   /* aquí no hay "sección activa": se elige tocando */
+html[data-device="mobile"] .st-side > .st-nav button.active svg{background:color-mix(in srgb, var(--st-acc) 22%, transparent); color:var(--st-acc);}
+
+/* Páginas: solo se ven al abrir una sección (m-page) o al buscar (m-search) */
+html[data-device="mobile"] .st:not(.m-page):not(.m-search) .st-page{display:none !important;}
+html[data-device="mobile"] .st-page{padding-top:8px;}
+html[data-device="mobile"] .st-page > h2{font-size:30px; margin:6px 0 18px 4px;}
+html[data-device="mobile"] .st-card{margin-bottom:18px; padding:20px 16px 16px; border-radius:22px;}
+html[data-device="mobile"] .st-card > h3{font-size:19px;}
+
+/* Con una sección abierta: arriba el botón ‹ Ajustes (pegado al borde al desplazar) y desaparecen título, buscador y lista */
+html[data-device="mobile"] .st.m-page .st-mback{
+  display:flex; align-items:center; gap:2px;
+  position:sticky; top:0; z-index:4;
+  margin:0 -16px; padding:calc(env(safe-area-inset-top, 0px) + 14px) 12px 10px;
+  background:var(--st-bg);
+  border:0; color:var(--st-acc);
+  font:500 17px var(--sans); text-align:left; cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+html[data-device="mobile"] .st-mback svg{width:24px; height:24px; flex:none;}
+html[data-device="mobile"] .st.m-page .st-title,
+html[data-device="mobile"] .st.m-page .st-search,
+html[data-device="mobile"] .st.m-page .st-side > .st-nav,
+html[data-device="mobile"] .st.m-search .st-side > .st-nav{display:none;}
+
+/* ---------- Celular: buscador de Ajustes más bonito (campo suave de esquinas redondeadas, con brillo al enfocar) ---------- */
+html[data-device="mobile"] .st-search{
+  display:flex; align-items:center; gap:12px;
+  height:52px; margin:0 0 24px; padding:0 12px 0 18px;
+  border:1px solid var(--st-line); border-radius:18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+    var(--st-card);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 10px 22px -14px rgba(0,0,0,.7);
+  transition:border-color .25s ease, box-shadow .3s ease, transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+html[data-device="mobile"] .st-search:focus-within{
+  border-color:var(--st-acc);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--st-acc) 24%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.1),
+    0 12px 26px -14px color-mix(in srgb, var(--st-acc) 70%, transparent);
+  transform:translateY(-1px);
+}
+html[data-device="mobile"] .st-search svg{width:21px; height:21px; color:var(--st-muted); transition:color .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);}
+html[data-device="mobile"] .st-search:focus-within > svg{color:var(--st-acc); transform:scale(1.08);}
+html[data-device="mobile"] .st-search input{font-size:17px; letter-spacing:.1px;}
+html[data-device="mobile"] .st-search input::placeholder{color:var(--st-muted); opacity:.8;}
+html[data-device="mobile"] .st-sclear{
+  display:none; align-items:center; justify-content:center; flex:none;
+  width:26px; height:26px; padding:0;
+  border:0; border-radius:50%;
+  background:color-mix(in srgb, var(--st-muted) 35%, transparent); color:var(--st-ink);
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+html[data-device="mobile"] .st-sclear svg{width:13px; height:13px; color:inherit;}
+html[data-device="mobile"] .st-search.has-text .st-sclear{display:flex; animation:stClearIn .25s cubic-bezier(.34,1.56,.64,1);}
+html[data-device="mobile"] .st-sclear:active{transform:scale(.9);}
+@keyframes stClearIn{from{opacity:0; transform:scale(.4);}}
+@media (prefers-reduced-motion:reduce){ html[data-device="mobile"] .st-search, html[data-device="mobile"] .st-search svg, html[data-device="mobile"] .st-sclear{transition:none; animation:none;} }
+
+/* ---------- Celular: elegir el fondo de pantalla dentro de Ajustes → Inicio → Página de inicio ---------- */
+html[data-device="mobile"] .st-bgwrap{
+  display:block;
+  /* la cuadrícula viene del panel "Personalizar" y usa sus variables: aquí toman los colores de Ajustes */
+  --cz-bg:var(--st-card); --cz-panel:var(--st-inner); --cz-border:var(--st-line);
+  --cz-ink:var(--st-ink); --cz-muted:var(--st-muted);
+  color:var(--st-ink);
+  margin:0 0 4px; padding:6px 0 22px;
+  border-top:1px solid var(--st-line);
+}
+html[data-device="mobile"] .st-bgwrap + .st-row{border-top:1px solid var(--st-line);}
+html[data-device="mobile"] .st-bgwrap .bgp-grid{gap:22px 14px;}
+html[data-device="mobile"] .st-bgwrap .bgp-label{font-size:12px;}
+
+/* Celular: las tarjetas de la frase del pie de página y del apodo no se muestran (el pie de página no existe en el celular) */
+html[data-device="mobile"] .st-pc-only{display:none !important;}
+
+/* ---------- Aviso Beta (celular) ---------- */
+.bt-modal{
+  position:fixed; inset:0; z-index:4000; display:grid; place-items:center; padding:20px;
+  background:rgba(8,8,10,.55); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  opacity:0; visibility:hidden; transition:opacity .25s ease, visibility 0s linear .25s;
+}
+.bt-modal.open{opacity:1; visibility:visible; transition:opacity .25s ease, visibility 0s;}
+.bt-win{
+  width:min(440px,100%); padding:26px 24px 22px; border-radius:26px;
+  border:1px solid rgba(255,255,255,.2); background:#1e1d25; color:#fbfbfe; font-family:var(--sans);
+  box-shadow:0 30px 80px rgba(0,0,0,.6), inset 1px 1px 0 rgba(255,255,255,.12);
+  transform:translateY(18px) scale(.92); opacity:0; transition:transform .25s ease, opacity .2s ease;
+}
+.bt-modal.open .bt-win{transform:none; opacity:1; transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .25s ease;}
+.bt-head{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+.bt-head h3{margin:0; font:600 22px/1.2 var(--sans);}
+.bt-badge{display:inline-block; padding:3px 9px; border-radius:999px; background:#f2b84b; color:#1b1500; font:700 11px/1.4 var(--sans); letter-spacing:.08em;}
+.st-card > h3 .bt-badge{margin-left:10px; vertical-align:middle;}
+.bt-text{margin:0 0 22px; color:#b4b3bd; font-size:15px; line-height:1.55;}
+.bt-btns{display:flex; gap:10px; flex-wrap:wrap;}
+.bt-btn{
+  flex:1 1 140px; padding:13px 18px; border-radius:999px; cursor:pointer;
+  border:1px solid rgba(255,255,255,.22); background:#2a2931; color:inherit; font:600 15px var(--sans);
+  transition:background .15s, transform .15s;
+}
+.bt-btn:hover{background:#383742;}
+.bt-btn:active{transform:scale(.97);}
+.bt-btn.bt-primary{background:#b8a1ff; border-color:#b8a1ff; color:#15111f;}
+.bt-btn.bt-primary:hover{filter:brightness(1.08); background:#b8a1ff;}
+.bt-btn:focus-visible{outline:2px solid #fbfbfe; outline-offset:3px;}
+:root[data-mode="light"] .bt-win{background:#fff; color:#1b1b1f; border-color:rgba(0,0,0,.14); box-shadow:0 30px 80px rgba(30,35,70,.28);}
+:root[data-mode="light"] .bt-text{color:#5d6068;}
+:root[data-mode="light"] .bt-btn{background:#efeef3; border-color:rgba(0,0,0,.14);}
+:root[data-mode="light"] .bt-btn:hover{background:#e3e2e9;}
+:root[data-mode="light"] .bt-btn.bt-primary{background:#6b4fd8; border-color:#6b4fd8; color:#fff;}
+html.reduce-motion .bt-modal, html.reduce-motion .bt-win{transition:none !important;}
