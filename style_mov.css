@@ -303,3 +303,11 @@ html[data-device="mobile"] .st-pc-only{display:none !important;}
 :root[data-mode="light"] .bt-btn:hover{background:#e3e2e9;}
 :root[data-mode="light"] .bt-btn.bt-primary{background:#6b4fd8; border-color:#6b4fd8; color:#fff;}
 html.reduce-motion .bt-modal, html.reduce-motion .bt-win{transition:none !important;}
+
+/* ---------- Listas desplegables de Ajustes que se abren hacia arriba (cuando abajo las taparía la barra) ----------
+   script_mov.js (sección 18) pone la clase "up". Las .cz-dd ya tienen su versión "up" en style_pc.css. */
+html[data-device="mobile"] .st-dd.up .st-menu{
+  top:auto; bottom:calc(100% + 8px);
+  transform-origin:bottom right; transform:translateY(8px) scale(.92);
+}
+html[data-device="mobile"] .st-dd.up.open .st-menu{transform:none;}
