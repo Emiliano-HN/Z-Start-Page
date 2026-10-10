@@ -142,3 +142,57 @@ function betaWarning({ title, text, onContinue }){
   if(typeof ResizeObserver === 'function') new ResizeObserver(measure).observe(nav); else window.addEventListener('resize', measure);
   measure();
 })();
+
+/* ---------- 18. Celular: los menús desplegables de Ajustes no se meten bajo la barra ----------
+   Pasa lo mismo que con el buscador del inicio (fitMenuAboveNav en script_pc.js): el menú debe terminar ANTES de la barra
+   de navegación. Si abajo no cabe y arriba hay más espacio, se abre hacia arriba; si aun así no cabe, se desplaza por dentro.
+   Funciona con los dos tipos de lista de Ajustes (.st-dd y .cz-dd) sin tocar script_pc.js: se queda mirando cuándo se abren. */
+(() => {
+  if(!window.AKON_PC_LOADED) return;
+  const GAP = 12;                 // espacio libre entre el menú y la barra de abajo
+  const MAX = 380;                // alto máximo de cualquier menú, en px
+  const sel = '.st-dd, .cz-dd';
+
+  function fit(dd, keepDir){
+    const menu = dd.querySelector('.st-menu, .cz-dd-menu');
+    const btn  = dd.querySelector('button');
+    const nav  = byId('mnav');
+    if(!menu || !btn) return;
+    if(document.documentElement.dataset.device !== 'mobile' || !nav){       // en computadora no se toca nada
+      menu.style.maxHeight = ''; menu.style.overflowY = ''; menu.style.overscrollBehavior = '';
+      return;
+    }
+    const area = byId('settings');
+    const topLimit = (area ? area.getBoundingClientRect().top : 0) + 8;
+    const r = btn.getBoundingClientRect();
+    const below = nav.getBoundingClientRect().top - r.bottom - 8 - GAP;    // espacio libre hacia abajo
+    const above = r.top - topLimit - 8;                                    // espacio libre hacia arriba
+    if(!keepDir){                                                          // la dirección se decide solo al abrir
+      menu.style.maxHeight = '';
+      const need = menu.scrollHeight + 2;                                  // alto real que necesita la lista
+      dd.classList.toggle('up', need > below && above > below);
+    }
+    const avail = dd.classList.contains('up') ? above : below;
+    menu.style.maxHeight = Math.max(120, Math.floor(Math.min(avail, MAX))) + 'px';
+    menu.style.overflowY = 'auto';
+    menu.style.overscrollBehavior = 'contain';
+  }
+
+  // Cuando a una lista se le pone la clase "open", se ajusta
+  new MutationObserver(list => {
+    for(const m of list){
+      const dd = m.target;
+      if(!dd.matches || !dd.matches(sel)) continue;
+      const wasOpen = (m.oldValue || '').split(/\s+/).includes('open');
+      if(dd.classList.contains('open') && !wasOpen) fit(dd, false);
+    }
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+
+  // Si la pantalla se mueve o cambia de tamaño con una lista abierta, se reajusta el alto (la dirección se queda igual)
+  const refit = e => {
+    if(e && e.target instanceof Element && e.target.closest('.st-menu, .cz-dd-menu')) return;   // el scroll de la propia lista no cuenta
+    document.querySelectorAll('.st-dd.open, .cz-dd.open').forEach(dd => fit(dd, true));
+  };
+  window.addEventListener('resize', refit);
+  document.addEventListener('scroll', refit, { capture: true, passive: true });
+})();
