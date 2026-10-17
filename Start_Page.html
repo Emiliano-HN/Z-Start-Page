@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Seguridad: solo se ejecutan TUS script_pc.js y script_mov.js; nada inline, nada de otros sitios -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://www.google.com https://*.gstatic.com; connect-src 'self' https://api.open-meteo.com https://suggestqueries.google.com https://duckduckgo.com https://es.wikipedia.org; form-action 'self'; base-uri 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>AKON Search</title>
+  <link rel="icon" type="image/png" href="images/Start_Page.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,480&family=Inter:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style_pc.css">
+  <link rel="stylesheet" href="style_mov.css" data-for="mobile">
+  <!-- Sin JavaScript la página no inicia: se queda el aviso -->
+  <noscript><style>.intro-center{display:none} .err{display:flex !important; opacity:1 !important; animation:none !important}</style></noscript>
+</head>
+<body class="intro-active intro-name">
+
+<!-- Pantalla de inicio: logo con anillo de carga que luego viaja a su lugar; la maneja script_pc.js (sección 16) -->
+<div class="intro" id="intro" aria-hidden="true">
+  <div class="intro-center">
+    <div class="intro-stage">
+      <svg class="intro-ring" viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="54"></circle><circle class="ring-fg" id="introRing" cx="60" cy="60" r="54"></circle></svg>
+      <img class="intro-logo" id="introLogo" src="images/Logo.png" alt="" width="120" height="120">
+      <span class="intro-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7.5"></polyline></svg></span>
+    </div>
+    <ul class="intro-steps" id="introSteps"></ul>
+    <div class="intro-text"><span id="introLabel">Cargando</span> <span id="introPct">0%</span></div>
+  </div>
+</div>
+
+<!-- Páginas de error (404 y 106). script_pc.js las muestra en lugar de la página cuando falta algo o no hay internet
+     y cambia los textos. Si script_pc.js no cargó, esta misma pantalla (con los textos de aquí) aparece sola a los 8 s, solo con CSS. -->
+<div class="err" id="errPage" hidden>
+  <div class="err-page">
+    <div class="err-scene">
+      <div class="err-art" role="img" aria-label="Un cavernícola jugando con un cable"></div>
+      <h1 id="errCode">404</h1>
+    </div>
+    <div class="err-box">
+      <h2 id="errTitle">Parece que algo se perdió</h2>
+      <p id="errText">No se pudo iniciar AKON Search: falta <b>script_pc.js</b> o JavaScript está desactivado.</p>
+      <p class="err-detail" id="errDetail" hidden></p>
+      <div><a class="err-btn" id="errBtn" href="">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><polyline points="21 3 21 9 15 9"></polyline></svg>
+        <span>Reintentar</span>
+      </a></div>
+    </div>
+  </div>
+</div>
+<main>
+
+  <!-- Tu logo va en images/Logo.png (si no existe, solo se ve el nombre) -->
+  <div class="masthead">
+    <div class="brand">
+      <img class="brand-logo" src="images/Logo.png" alt="" width="110" height="110">
+      <span class="brand-name">AKON Search</span>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="greeting" id="greeting">Buenos días</div>
+    <div class="clock"><time id="clockTime">00:00</time><span class="ampm" id="clockPeriod"></span></div>
+    <div class="date" id="date">—</div>
+
+    <!-- Clima (lo llena script_pc.js). Clic: usar mi ubicación / volver al lugar por defecto -->
+    <button type="button" class="weather" id="weather" aria-label="Clima actual" title="Clic para usar mi ubicación">
+      <span class="w-top"><span class="w-icon" id="wIcon" aria-hidden="true"></span><span class="w-temp" id="wTemp"></span></span>
+      <span class="w-desc" id="wDesc"></span>
+      <span class="w-meta" id="wPlace"></span>
+      <span class="w-meta" id="wDetail"></span>
+    </button>
+  </div>
+
+  <!-- Los buscadores del menú los genera script_pc.js a partir de la lista ENGINES -->
+  <form class="search" id="searchForm" autocomplete="off">
+    <button type="button" class="engine-btn" id="engineBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Elegir buscador">
+      <span class="engine-mark" id="engineMark">G</span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+
+    <input id="q" type="text" maxlength="200" placeholder="Buscar con Google" aria-label="Buscar" autocomplete="off" spellcheck="false">
+    <div class="ph-overlay" id="phOverlay" aria-hidden="true"><span id="phText"></span><span class="ph-bar"></span></div>
+
+    <ul class="engine-menu" id="engineMenu" role="listbox"></ul>
+
+    <div class="history-menu" id="historyMenu">
+      <div class="history-head">
+        <span>Búsquedas recientes</span>
+        <button type="button" class="clear-btn" id="clearHistory">Borrar</button>
+      </div>
+      <ul class="history-list" id="historyList" role="listbox" aria-label="Búsquedas recientes"></ul>
+    </div>
+  </form>
+
+  <!-- Accesos directos: los agregas tú con el botón "+" (se guardan en el navegador); script_pc.js los dibuja -->
+  <div class="shortcuts" id="shortcuts" aria-label="Accesos directos"></div>
+
+  <!-- Para agregar un enlace: copia un <a> de cualquier sección y cambia href, la imagen y el texto.
+       El tamaño del icono se cambia con width y height del <img>. -->
+  <section>
+    <h2>Redes sociales</h2>
+    <div class="grid">
+      <a href="https://www.linkedin.com" target="_blank" rel="noopener">
+        <img src="images/LinkedIn.png" alt="" width="35" height="35">
+        LinkedIn
+      </a>
+
+      <a href="https://4chan.org/" target="_blank" rel="noopener">
+        <img src="images/4Chan.png" alt="" width="60" height="35">
+        4chan
+      </a>
+
+      <a href="https://web.whatsapp.com/" target="_blank" rel="noopener">
+        <img src="images/WhatsApp.png" alt="" width="35" height="35">
+        WhatsApp
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Google</h2>
+    <div class="grid">
+      <a href="https://mail.google.com" target="_blank" rel="noopener">
+        <img src="images/Gmail.png" alt="" width="55" height="30">
+        Gmail
+      </a>
+
+      <a href="https://drive.google.com" target="_blank" rel="noopener">
+        <img src="images/GoogleDrive.png" alt="" width="55" height="35">
+        Google Drive
+      </a>
+
+      <a href="https://www.youtube.com/" target="_blank" rel="noopener">
+        <img src="images/YouTube.png" alt="" width="55" height="35">
+        YouTube
+      </a>
+
+      <a href="https://classroom.google.com/" target="_blank" rel="noopener">
+        <img src="images/Classroom.png" alt="" width="55" height="35">
+        Classroom
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Inteligencia artificial</h2>
+    <div class="grid">
+      <a href="https://claude.ai" target="_blank" rel="noopener">
+        <img src="images/Claude.png" alt="" width="35" height="35">
+        Claude
+      </a>
+
+      <a href="https://gemini.google.com" target="_blank" rel="noopener">
+        <img src="images/Gemini.png" alt="" width="35" height="35">
+        Gemini
+      </a>
+
+      <a href="https://chatgpt.com" target="_blank" rel="noopener">
+        <img src="images/ChatGPT.png" alt="" width="35" height="35">
+        ChatGPT
+      </a>
+
+      <a href="https://grok.com/" target="_blank" rel="noopener">
+        <img src="images/Grok.png" alt="" width="35" height="35">
+        Grok
+      </a>
+
+      <a href="https://chat.deepseek.com/" target="_blank" rel="noopener">
+        <img src="images/DeepSeek.png" alt="" width="60" height="35">
+        DeepSeek
+      </a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Herramientas de hacking</h2>
+    <div class="grid">
+      <a href="https://github.com" target="_blank" rel="noopener">
+        <img src="images/GitHub.png" alt="" width="35" height="35">
+        GitHub
+      </a>
+
+      <a href="https://hackerai.co/" target="_blank" rel="noopener">
+        <img src="images/HackerAI.png" alt="" width="35" height="35">
+        HackerAI
+      </a>
+
+      <a href="https://venice.ai/token" target="_blank" rel="noopener">
+        <img src="images/Venice.png" alt="" width="35" height="35">
+        Venice
+      </a>
+
+      <a href="https://holehe.org/" target="_blank" rel="noopener">
+        <img src="images/Holehe.png" alt="" width="75" height="35">
+        Holehe
+      </a>
+
+      <a href="https://iplogger.org/" target="_blank" rel="noopener">
+        <img src="images/IpLogger.png" alt="" width="35" height="35">
+        IpLogger
+      </a>
+
+      <a href="https://3wifi.dev/" target="_blank" rel="noopener">
+        <img src="images/3WiFi.png" alt="" width="35" height="35">
+        3WiFi
+      </a>
+
+      <a href="https://www.virustotal.com/" target="_blank" rel="noopener">
+        <img src="images/VirusTotal.png" alt="" width="35" height="35">
+        VirusTotal
+      </a>
+
+      <a href="https://www.exploit-db.com/" target="_blank" rel="noopener">
+        <img src="images/ExploitDB.png" alt="" width="35" height="35">
+        Exploit-DB
+      </a>
+
+      <a href="https://www.vccgenerator.org" target="_blank" rel="noopener">
+        <img src="images/VCCGenerator.png" alt="" width="35" height="35">
+        VCC Generator
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <span>El buen trabajo empieza con calma.</span>
+    <span class="signature">h3nix</span>
+  </footer>
+
+</main>
+
+<!-- Botón para abrir "Personalizar"; script_pc.js llena cada parte del panel -->
+<button type="button" class="fab" id="bgBtn" aria-label="Personalizar" aria-expanded="false" aria-controls="bgPanel">
+  <span class="fab-label" aria-hidden="true">Personalizar</span>
+  <svg class="fab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path class="pencil-line" d="M12 20h9"></path>
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+  </svg>
+</button>
+
+<aside class="cz-panel" id="bgPanel" aria-hidden="true">
+  <!-- El contenido va en su propia caja con scroll: así la barra queda dentro del panel y lejos de las esquinas redondeadas -->
+  <div class="cz-scroll">
+    <div class="cz-head">
+      <span>Personalizar</span>
+      <button type="button" class="cz-close" id="bgClose" aria-label="Cerrar">×</button>
+    </div>
+
+    <div class="cz-section">
+      <h4>Apariencia</h4>
+      <div class="cz-swatches" id="themeSwatches"></div>
+    </div>
+
+    <div class="cz-section">
+      <div class="cz-row">
+        <span>Fondos de pantalla</span>
+        <label class="cz-switch">
+          <input type="checkbox" id="bgToggle" checked>
+          <span class="cz-slider"></span>
+        </label>
+      </div>
+      <div class="bg-grid" id="bgGrid"></div>
+    </div>
+
+    <div class="cz-section">
+      <div class="cz-row">
+        <span>Accesos directos</span>
+        <label class="cz-switch">
+          <input type="checkbox" id="scToggle" checked>
+          <span class="cz-slider"></span>
+        </label>
+      </div>
+      <div class="cz-row cz-sub" id="scRowsRow">
+        <span>Número de filas</span>
+        <select class="cz-select" id="scRows">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="99">Todas</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enlace fijo abajo a la izquierda: queda siempre visible, aunque el contenido haga scroll -->
+  <div class="cz-foot">
+    <button type="button" class="cz-more" id="bgMore">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span>Administrar más ajustes</span>
+    </button>
+  </div>
+</aside>
+<input type="file" id="bgFileInput" accept="image/*" hidden>
+
+<!-- Buscador rápido (Ctrl + V): desenfoca la página y muestra solo esta barra; lo llena script_pc.js -->
+<div class="qs" id="qs" aria-hidden="true">
+  <div class="qs-box" role="dialog" aria-label="Buscador rápido">
+    <div class="qs-bar">
+      <svg class="qs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+      <input id="qsInput" type="text" maxlength="200" placeholder="Buscador rápido" aria-label="Buscador rápido" autocomplete="off" spellcheck="false">
+      <kbd>Esc</kbd>
+    </div>
+    <ul class="qs-list" id="qsList" role="listbox"></ul>
+    <div class="qs-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> mover</span>
+      <span><kbd>↵</kbd> abrir</span>
+      <span><kbd>⇧</kbd><kbd>↵</kbd> buscar en la web</span>
+    </div>
+  </div>
+</div>
+
+<dialog class="sc-dialog" id="scDialog" aria-labelledby="scTitle">
+  <form class="sc-form" id="scForm" novalidate>
+    <h3 id="scTitle">Nuevo acceso directo</h3>
+    <label>Dirección
+      <input id="scUrl" type="text" maxlength="2048" inputmode="url" placeholder="youtube.com" autocomplete="off" spellcheck="false">
+    </label>
+    <label>Nombre (opcional)
+      <input id="scName" type="text" placeholder="YouTube" maxlength="24" autocomplete="off">
+    </label>
+    <div class="sc-error" id="scError" role="alert"></div>
+    <div class="sc-actions">
+      <button type="button" class="sc-btn" id="scCancel">Cancelar</button>
+      <button type="submit" class="sc-btn primary">Agregar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Celular: barra de navegación inferior con 3 pestañas (Inicio, Enlaces y Ajustes). Solo se ve cuando el dispositivo es móvil;
+     la maneja script_mov.js, que dibuja el hueco "líquido" y mueve la burbuja blanca. -->
+<nav class="mnav" id="mnav" aria-label="Navegación">
+  <svg class="mnav-shadow" aria-hidden="true" focusable="false"><path id="mnavShadow"></path></svg>
+  <div class="mnav-glass" id="mnavGlass" aria-hidden="true"></div>
+  <svg class="mnav-rim" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="mnavRimGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fff" stop-opacity=".85"></stop>
+        <stop offset=".45" stop-color="#fff" stop-opacity=".18"></stop>
+        <stop offset="1" stop-color="#fff" stop-opacity=".5"></stop>
+      </linearGradient>
+    </defs>
+    <path id="mnavPath"></path>
+  </svg>
+  <div class="mnav-bubble" id="mnavBubble" aria-hidden="true"></div>
+  <div class="mnav-row">
+    <button type="button" class="mnav-item active" data-tab="home" aria-label="Inicio" aria-current="page">
+      <span class="mnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"></path><path d="M5 9.5V20h14V9.5"></path></svg></span>
+      <span class="mnav-label">Inicio</span>
+    </button>
+    <button type="button" class="mnav-item" data-tab="links" aria-label="Enlaces">
+      <span class="mnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
+      <span class="mnav-label">Enlaces</span>
+    </button>
+    <button type="button" class="mnav-item" data-tab="settings" aria-label="Ajustes">
+      <span class="mnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
+      <span class="mnav-label">Ajustes</span>
+    </button>
+  </div>
+</nav>
+
+<script src="script_pc.js"></script>
+<script src="script_mov.js"></script>
+</body>
+</html>
