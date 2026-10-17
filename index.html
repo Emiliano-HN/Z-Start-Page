@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- Seguridad: solo se ejecutan TUS script_pc.js y script_mov.js; nada inline, nada de otros sitios -->
+  <!-- Seguridad: solo se ejecutan TUS Loader.js, script_pc.js y script_mov.js; nada inline, nada de otros sitios -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://www.google.com https://*.gstatic.com; connect-src 'self' https://api.open-meteo.com https://suggestqueries.google.com https://duckduckgo.com https://es.wikipedia.org; form-action 'self'; base-uri 'none'; object-src 'none'">
   <meta name="referrer" content="no-referrer">
   <title>AKON Search</title>
@@ -11,8 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,480&family=Inter:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style_pc.css">
-  <link rel="stylesheet" href="style_mov.css" data-for="mobile">
+  <!-- Loader.js verifica los archivos, detecta el dispositivo y descarga SOLO style_pc.css + script_pc.js (computadora) o style_mov.css + script_mov.js (celular).
+       Mientras tanto la página se mantiene oculta (bootHide) y se ve la pantalla de carga del Loader; a los 9 s se muestra sola por si algo falla. -->
+  <style id="bootHide">body > :not(#boot):not(script){visibility:hidden} @keyframes bootShow{to{visibility:visible}} body{animation:bootShow 0s 9s forwards}</style>
   <!-- Sin JavaScript la página no inicia: se queda el aviso -->
   <noscript><style>.intro-center{display:none} .err{display:flex !important; opacity:1 !important; animation:none !important}</style></noscript>
 </head>
@@ -41,7 +42,7 @@
     </div>
     <div class="err-box">
       <h2 id="errTitle">Parece que algo se perdió</h2>
-      <p id="errText">No se pudo iniciar AKON Search: falta <b>script_pc.js</b> o JavaScript está desactivado.</p>
+      <p id="errText">No se pudo iniciar AKON Search: falta <b>Loader.js</b>, <b>script_pc.js</b> o <b>script_mov.js</b> o JavaScript está desactivado.</p>
       <p class="err-detail" id="errDetail" hidden></p>
       <div><a class="err-btn" id="errBtn" href="">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><polyline points="21 3 21 9 15 9"></polyline></svg>
@@ -332,39 +333,8 @@
   </form>
 </dialog>
 
-<!-- Celular: barra de navegación inferior con 3 pestañas (Inicio, Enlaces y Ajustes). Solo se ve cuando el dispositivo es móvil;
-     la maneja script_mov.js, que dibuja el hueco "líquido" y mueve la burbuja blanca. -->
-<nav class="mnav" id="mnav" aria-label="Navegación">
-  <svg class="mnav-shadow" aria-hidden="true" focusable="false"><path id="mnavShadow"></path></svg>
-  <div class="mnav-glass" id="mnavGlass" aria-hidden="true"></div>
-  <svg class="mnav-rim" aria-hidden="true" focusable="false">
-    <defs>
-      <linearGradient id="mnavRimGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#fff" stop-opacity=".85"></stop>
-        <stop offset=".45" stop-color="#fff" stop-opacity=".18"></stop>
-        <stop offset="1" stop-color="#fff" stop-opacity=".5"></stop>
-      </linearGradient>
-    </defs>
-    <path id="mnavPath"></path>
-  </svg>
-  <div class="mnav-bubble" id="mnavBubble" aria-hidden="true"></div>
-  <div class="mnav-row">
-    <button type="button" class="mnav-item active" data-tab="home" aria-label="Inicio" aria-current="page">
-      <span class="mnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"></path><path d="M5 9.5V20h14V9.5"></path></svg></span>
-      <span class="mnav-label">Inicio</span>
-    </button>
-    <button type="button" class="mnav-item" data-tab="links" aria-label="Enlaces">
-      <span class="mnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
-      <span class="mnav-label">Enlaces</span>
-    </button>
-    <button type="button" class="mnav-item" data-tab="settings" aria-label="Ajustes">
-      <span class="mnav-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
-      <span class="mnav-label">Ajustes</span>
-    </button>
-  </div>
-</nav>
 
-<script src="script_pc.js"></script>
-<script src="script_mov.js"></script>
+
+<script src="Loader.js"></script>
 </body>
 </html>
