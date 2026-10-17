@@ -1,5 +1,15 @@
 'use strict';
 /* =========================================================
+   script_pc.js — versión de COMPUTADORA (completa e independiente de script_mov.js).
+   Lo descarga Loader.js (junto con style_pc.css) cuando detecta una computadora; la otra versión no se descarga.
+   Trae su propia pantalla de carga (HTML, CSS, JavaScript, Dispositivo, Imágenes) que borra el caché al empezar y al terminar.
+   ========================================================= */
+(() => {
+  /* Loader.js ya decidió el dispositivo y descargó SOLO esta versión; aquí solo se confirma la marca en <html>. */
+  const root = document.documentElement;
+  if(!root.dataset.device) root.dataset.device = 'pc';
+
+/* =========================================================
    Archivos desactivados: Ajustes → Apariencia → "Archivos de la página".
    Va AL PRINCIPIO a propósito: con JavaScript desactivado, esta parte es lo único que se ejecuta
    (deja puesto el aviso y el atajo Ctrl + A, y corta el resto del archivo).
@@ -5951,3 +5961,4 @@ document.querySelectorAll('.grid a').forEach(a => {
 
 // Marca que script_pc.js terminó de cargar: script_mov.js solo actúa si esta marca existe
 window.AKON_PC_LOADED = true;
+})();
