@@ -3585,8 +3585,10 @@ applyDevice();      // ya desde el principio, aunque se salte la pantalla de ini
 // Sin internet se muestra la pantalla 106.
 // INTRO_ENABLED = false quita las animaciones pero mantiene las verificaciones.
 const INTRO_ENABLED = true;
-const INTRO_TIMES   = { html: 800, css: 900, js: 1000, dev: 800, img: 1600 };   // ms mínimos de cada paso
-const INTRO_MAX     = 12000;   // ms: si las imágenes no cargan en este tiempo, se considera un fallo
+const INTRO_SPEED   = 1.7;     // velocidad de la pantalla de carga: 1 = como antes, 1.7 = 70 % más rápida (las animaciones son las mismas, solo duran menos). Súbelo para ir más rápido, bájalo para ir más lento.
+const INTRO_TIMES   = { html: 0, css: 0, js: 0, dev: 0, img: 0 };   // ms mínimos de cada paso. En 0 la barra va a tiempo REAL: dura lo que tarde de verdad en encontrar cada cosa (si es instantáneo, es instantáneo)
+const INTRO_MAX     = 20000;   // ms (contados desde que abre la página, incluyendo las pausas de los pasos): si las imágenes no terminan de revisarse en este tiempo, se considera un fallo
+const INTRO_STEP_PAUSE = 1000;   // ms de pausa después de ENCONTRAR cada paso (HTML, CSS, JavaScript, Dispositivo), antes de pasar al siguiente. La búsqueda en sí va a tiempo real
 const INTRO_HOLD    = 650;     // ms que se queda el "Todo listo" antes de que el águila despegue
 const INTRO_FLY     = 1500;    // ms que dura el vuelo del águila hasta el logo
 // Imágenes de la carpeta "images" (incluye las de images/fondos-preguardados):
@@ -3662,7 +3664,7 @@ function showErrorPage(kind, falta){
   }
 
   const fast = !INTRO_ENABLED || reducedMotion();
-  const time = key => fast ? 0 : INTRO_TIMES[key];
+  const time = key => fast ? 0 : INTRO_TIMES[key] / INTRO_SPEED;
 
   const logo      = byId('introLogo');
   const ring      = byId('introRing');
@@ -3698,6 +3700,46 @@ function showErrorPage(kind, falta){
     return (segs.length ? '…/' : '') + out;
   }
 
+  // ---- Detalles dentro de cada paso: cada fila (HTML, CSS, JavaScript, Dispositivo, Imágenes) tiene un botoncito ▾ que
+  //      muestra u oculta lo que ese paso está haciendo. Empiezan ocultos. ----
+  const LOG_ICONS = { ok: '✓', err: '✗', dir: '▸', back: '↩', warn: '!', info: '•' };
+  const logBoxes = [];            // la caja de detalles de cada paso (se llenan al crear las filas)
+  let logStep = 0;                // el paso que está trabajando ahora: ahí se escriben los detalles
+  {
+    const css = document.createElement('style');
+    css.textContent = `
+      .st-more{flex:none; margin-left:auto; width:20px; height:20px; padding:0; border:0; border-radius:6px; background:none; color:var(--muted);
+        display:grid; place-items:center; cursor:pointer; transition:transform .25s ease, background .2s ease, color .2s ease;}
+      .st-more svg{width:14px; height:14px; display:block;}
+      .st-more:hover{background:rgba(127,127,127,.18); color:var(--ink);}
+      .intro-steps li.show-log .st-more{transform:rotate(180deg);}
+      .st-log{display:none; flex-basis:100%; box-sizing:border-box; margin-left:28px; max-height:clamp(70px, 16vh, 130px); overflow-y:auto; padding:7px 9px;
+        border:1px solid var(--border); border-radius:9px; background:rgba(127,127,127,.07);
+        font-family:'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace; font-size:11px; line-height:1.55; color:var(--muted);
+        scrollbar-width:thin; text-align:left;}
+      .intro-steps li.show-log .st-log{display:block; animation:ilIn .25s ease both;}
+      .il-line{display:flex; gap:6px; word-break:break-all; animation:ilIn .25s ease both;}
+      .il-ic{flex:none; width:12px; text-align:center;}
+      .il-ok .il-ic{color:var(--accent);}
+      .il-dir{color:var(--ink);}
+      .il-warn{color:#d9a63a;}
+      .il-err{color:#d94b4b;}
+      @keyframes ilIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}`;
+    document.head.append(css);
+  }
+  const introLog = (kind, text) => {
+    const box = logBoxes[logStep];
+    if(!box) return;
+    const line = document.createElement('div');
+    line.className = 'il-line il-' + kind;
+    const ic = document.createElement('span'); ic.className = 'il-ic'; ic.textContent = LOG_ICONS[kind] || '•';
+    const tx = document.createElement('span'); tx.textContent = text;           // texto plano (nunca HTML)
+    line.append(ic, tx);
+    box.append(line);
+    while(box.childElementCount > 500) box.firstElementChild.remove();
+    box.scrollTop = box.scrollHeight;
+  };
+
   // 1) Obligatorias: las de la página y del buscador (images/ sin contar fondos-preguardados) y el icono de pestaña
   const images = [...document.images].filter(img => !img.closest('#shortcuts, #qs'))
     .filter(img => !inFondos(img.getAttribute('src') || ''));
@@ -3710,11 +3752,11 @@ function showErrorPage(kind, falta){
     const key = absUrl(img.getAttribute('src') || '');
     if(seen.has(key)) continue;
     seen.add(key);
-    reqItems.push({ label: relative(key), img, url: key, probe: bgExists(key) });
+    reqItems.push({ label: relative(key), img, url: key });
   }
   if(iconLink && iconLink.getAttribute('href')){
     const key = absUrl(iconLink.getAttribute('href'));
-    if(!seen.has(key)) reqItems.push({ label: relative(key), probe: bgExists(key), url: key, icon: iconLink });
+    if(!seen.has(key)) reqItems.push({ label: relative(key), url: key, icon: iconLink });
   }
 
   // 2) Revisión de las imágenes de una en una: primero las obligatorias y luego los fondos de
@@ -3857,59 +3899,99 @@ function showErrorPage(kind, falta){
   }
   clearCaches();                                           // al empezar la pantalla de carga
   const inspect = { done: false, found: [], reqMissing: [], fondosMissing: [], usedFallback: [] };
-  (async () => {
-    const deadline = t0 + INTRO_MAX;
-    for(const it of reqItems){
-      // Solo se pregunta "¿existe?" (sin descargar la imagen y sin revisar si está completa o dañada)
-      let ok = await it.probe;
-      if(!ok){
-        const res = await deepCheck(it.url, true);
-        if(res.ok){
-          ok = true;
-          console.warn('[Imágenes] ' + it.label + ': ' + res.note);
-          if(it.img){ it.img.src = res.url; it.img.style.display = ''; }
-          if(it.icon) it.icon.href = res.url;
+  // La revisión de imágenes empieza cuando la pantalla de carga llega al paso "Imágenes" (así se ve en tiempo real y en orden)
+  let inspectStarted = false;
+  function runInspect(){
+    if(inspectStarted) return;
+    inspectStarted = true;
+    (async () => {
+      const dirOf = u => { const x = relative(u); const k = x.lastIndexOf('/'); return k < 0 ? '' : x.slice(0, k + 1); };
+      let curDir = null;
+      const enterDir = dir => {                                 // narra cómo se mueve entre carpetas
+        if(curDir === dir) return;
+        if(curDir !== null && !dir.startsWith(curDir)) introLog('back', 'Regresando a la carpeta madre');
+        introLog('dir', 'Entrando a ' + (dir || './'));
+        curDir = dir;
+      };
+
+      introLog('info', 'Revisando las imágenes (solo se pregunta si existen)');
+      reqItems.forEach(it => { it.probe = bgExists(it.url); });  // todas las preguntas salen a la vez; aquí se cuentan en orden
+      for(const it of reqItems){
+        const name = it.label.split('/').pop();
+        enterDir(dirOf(it.url));
+        // Solo se pregunta "¿existe?" (sin descargar la imagen y sin revisar si está completa o dañada)
+        let ok = await it.probe;
+        if(ok){
+          introLog('ok', name + ' encontrada');
         }else{
-          // Imagen de respaldo: si no está esta, se usa su copia con otro nombre (misma imagen, distinto archivo)
-          const fbName = IMG_FALLBACKS[safeDecode(it.url).split('/').pop().toLowerCase()];
-          const fbUrl  = fbName ? absUrl('images/' + fbName) : '';
-          if(fbUrl && await bgExists(fbUrl)){
+          const res = await deepCheck(it.url, true);
+          if(res.ok){
             ok = true;
-            console.warn('[Imágenes] No se encontró ' + it.label + ' (' + res.why + '). Se carga images/' + fbName + ' en su lugar: es la misma imagen con otro nombre, pero conviene arreglar el archivo original.');
-            if(it.img){ it.img.src = fbUrl; it.img.style.display = ''; }
-            if(it.icon) it.icon.href = fbUrl;
-            inspect.usedFallback.push(it.label + ' → images/' + fbName);
+            console.warn('[Imágenes] ' + it.label + ': ' + res.note);
+            introLog('warn', name + ': ' + res.note);
+            if(it.img){ it.img.src = res.url; it.img.style.display = ''; }
+            if(it.icon) it.icon.href = res.url;
           }else{
-            it.label += ' — ' + res.why;
+            // Imagen de respaldo: si no está esta, se usa su copia con otro nombre (misma imagen, distinto archivo)
+            const fbName = IMG_FALLBACKS[safeDecode(it.url).split('/').pop().toLowerCase()];
+            const fbUrl  = fbName ? absUrl('images/' + fbName) : '';
+            if(fbUrl && await bgExists(fbUrl)){
+              ok = true;
+              console.warn('[Imágenes] No se encontró ' + it.label + ' (' + res.why + '). Se carga images/' + fbName + ' en su lugar: es la misma imagen con otro nombre, pero conviene arreglar el archivo original.');
+              introLog('err', name + ' no se encontró (' + res.why + ')');
+              introLog('warn', 'Se usa images/' + fbName + ' en su lugar (misma imagen con otro nombre)');
+              if(it.img){ it.img.src = fbUrl; it.img.style.display = ''; }
+              if(it.icon) it.icon.href = fbUrl;
+              inspect.usedFallback.push(it.label + ' → images/' + fbName);
+            }else{
+              introLog('err', 'FALTA ' + it.label + ' (' + res.why + ')');
+              it.label += ' — ' + res.why;
+            }
+          }
+        }
+        (ok ? inspect.found : inspect.reqMissing).push(it.label);
+      }
+
+      await bgScanDone.catch(() => {});
+      // Fondos: carpeta por carpeta. Dentro de cada carpeta las preguntas salen a la vez y se cuentan en orden.
+      for(const cat of BG_CATEGORIES){
+        enterDir(BG_FOLDER + cat.folder);
+        if(!cat.files.length) introLog('info', 'Sin imágenes en esta carpeta');
+        const jobs = [...cat.files].map(file => (async () => {
+          const path = cat.folder + file;
+          const rel  = bgImage(path).slice(5, -2);
+          let ok = await bgExists(rel), note = '', real = file;
+          if(!ok){
+            const res = await deepCheck(absUrl(rel), false, true);
+            if(res.ok && res.file){
+              const idx = cat.files.indexOf(file);
+              if(idx >= 0) cat.files[idx] = res.file;            // se usa el nombre real (con sus mayúsculas)
+              console.warn('[Fondos] ' + BG_FOLDER + path + ': ' + res.note);
+              ok = true; note = res.note; real = res.file;
+            }
+          }
+          return { file, ok, note, real, path };
+        })());
+        for(const job of jobs){
+          const r = await job;
+          if(r.ok){
+            introLog(r.note ? 'warn' : 'ok', r.note ? r.file + ': ' + r.note : r.file + ' encontrada');
+            inspect.found.push(BG_FOLDER + r.path);
+          }else{
+            introLog('err', r.file + ' no existe (se permite que falten algunas)');
+            inspect.fondosMissing.push(BG_FOLDER + r.path);
           }
         }
       }
-      (ok ? inspect.found : inspect.reqMissing).push(it.label);
-    }
-    await bgScanDone.catch(() => {});
-    // Fondos: todos se revisan a la vez (antes uno por uno y descargando cada imagen); el orden de la lista se conserva
-    const jobs = [];
-    for(const cat of BG_CATEGORIES) for(const file of [...cat.files]) jobs.push({ cat, file, path: cat.folder + file });
-    const results = await Promise.all(jobs.map(async job => {
-      const rel = bgImage(job.path).slice(5, -2);
-      let ok = await bgExists(rel);
-      if(!ok){
-        const res = await deepCheck(absUrl(rel), false, true);
-        if(res.ok && res.file){
-          const i = job.cat.files.indexOf(job.file);
-          if(i >= 0) job.cat.files[i] = res.file;            // se usa el nombre real (con sus mayúsculas)
-          console.warn('[Fondos] ' + BG_FOLDER + job.path + ': ' + res.note);
-          ok = true;
-        }
-      }
-      return ok;
-    }));
-    jobs.forEach((job, k) => (results[k] ? inspect.found : inspect.fondosMissing).push(BG_FOLDER + job.path));
-    inspect.done = true;
-  })();
+      const miss = inspect.reqMissing.length + inspect.fondosMissing.length;
+      introLog(inspect.reqMissing.length ? 'err' : 'info', 'Total: ' + inspect.found.length + ' imágenes encontradas' + (miss ? ' · faltan ' + miss : ''));
+      inspect.done = true;
+    })().catch(e => { introLog('err', 'Error al revisar: ' + (e && e.message || e)); });
+  }
 
   let fontsReady = !document.fonts, pageLoaded = document.readyState === 'complete';
   if(document.fonts) document.fonts.ready.then(() => { fontsReady = true; });
+  setTimeout(() => { fontsReady = true; }, 2500);        // las fuentes de Google no retienen la pantalla de carga más de 2.5 s (si tardan, se cambian solas al llegar)
   if(!pageLoaded) addEventListener('load', () => { pageLoaded = true; }, { once: true });
   const foundNow = () => inspect.found.length;      // imágenes encontradas (obligatorias + fondos)
 
@@ -3923,13 +4005,7 @@ function showErrorPage(kind, falta){
       acc += now - last;
       last = now;
       const total = inspect.found.length;
-      if(fast){
-        revealed = total;
-      }else{
-        const interval = Math.max(10, Math.min(30, 2600 / Math.max(1, INTRO_IMG_TOTAL, total)));   // ≈ 2.6 s para llegar a 103
-        while(acc >= interval && revealed < total){ revealed++; acc -= interval; }
-        if(revealed >= total) acc = 0;                // sin imágenes nuevas no se acumula tiempo
-      }
+      revealed = total;                               // contador REAL: muestra las imágenes que ya se encontraron, sin ritmo falso
       if(revealed){
         detail.textContent = `${revealed}/${INTRO_IMG_TOTAL}`;
         where.textContent  = inspect.found[revealed - 1];
@@ -3984,7 +4060,7 @@ function showErrorPage(kind, falta){
       where: () => (currentDevice || applyDevice()).how,
       check: () => { applyDevice(); return []; } },
     { name: 'Imágenes',   weight: .65, time: time('img'),
-      onStart: row => startReveal(row),
+      onStart: row => { startReveal(row); runInspect(); },
       ready:  () => inspect.done && revealed >= inspect.found.length && fontsReady,
       real:   () => {
         const imgPart = inspect.done ? (inspect.found.length ? revealed / inspect.found.length : 1)
@@ -3995,7 +4071,7 @@ function showErrorPage(kind, falta){
       check:  () => checkImages() }
   ];
 
-  const rows = steps.map(st => {
+  const rows = steps.map((st, idx) => {
     const li = document.createElement('li');
     li.className = 'pending';
     li.innerHTML = '<span class="st-ico"><span class="st-dot"></span><span class="st-spin"></span>'
@@ -4003,6 +4079,26 @@ function showErrorPage(kind, falta){
       + '<svg class="st-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg></span>'
       + '<span class="st-name"></span><span class="st-detail"></span><span class="st-where"></span><span class="st-bar"><i></i></span>';
     li.querySelector('.st-name').textContent = st.name;   // texto fijo del código
+    // Botoncito para ver/ocultar los detalles de este paso (empieza oculto)
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'st-more';
+    more.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>';   // flechita hacia abajo (fija del código, no viene de fuera)
+    more.title = 'Ver detalles';
+    more.setAttribute('aria-expanded', 'false');
+    more.setAttribute('aria-label', 'Ver detalles de ' + st.name);
+    const log = document.createElement('div');
+    log.className = 'st-log';
+    log.setAttribute('role', 'log');
+    logBoxes[idx] = log;
+    more.addEventListener('click', () => {
+      const open = li.classList.toggle('show-log');
+      more.title = open ? 'Ocultar detalles' : 'Ver detalles';
+      more.setAttribute('aria-expanded', String(open));
+      if(open) log.scrollTop = log.scrollHeight;
+    });
+    li.querySelector('.st-detail').after(more);
+    li.append(log);
     stepsEl.append(li);
     return li;
   });
@@ -4024,6 +4120,9 @@ function showErrorPage(kind, falta){
     requestAnimationFrame(frame);
   });
 
+  // Cambia el estado de la fila sin quitarle 'show-log' (así no se cierra el detalle que el usuario abrió)
+  const setRowState = (row, state) => { row.classList.remove('pending', 'active', 'done', 'failed'); row.classList.add(state); };
+
   async function runSteps(){
     const problems = [];
     let doneWeight = 0;
@@ -4033,9 +4132,12 @@ function showErrorPage(kind, falta){
       const detail  = row.querySelector('.st-detail');
       const where   = row.querySelector('.st-where');
       const started = performance.now();
-      row.className = 'active';
+      setRowState(row, 'active');
+      logStep = i;                                   // los detalles de ahora van en la caja de este paso
       if(st.file) where.textContent = 'buscando…';
       if(st.onStart) st.onStart(row);
+      if(st.file) introLog('info', 'Buscando ' + st.name + '…');
+      else if(st.name === 'Dispositivo') introLog('info', 'Detectando el dispositivo…');
 
       for(;;){
         const now     = performance.now();
@@ -4064,10 +4166,13 @@ function showErrorPage(kind, falta){
       if(st.where) where.textContent = st.where();                     // paso con su propio texto (Dispositivo)
       else if(st.file) where.textContent = (found.length ? 'no se encontró: ' : '') + shortPath(st.file());
       else where.textContent = `${shortPath(absUrl('images/'))} · ${foundNow()} archivos`;
+      if(!st.detail) introLog(found.length ? 'err' : 'ok', (found.length ? 'No se encontró ' : 'Encontrado ') + st.name + (where.textContent ? ' · ' + where.textContent : ''));
       bar.style.transform = 'scaleX(1)';
-      row.className = found.length ? 'failed' : 'done';
+      setRowState(row, found.length ? 'failed' : 'done');
       doneWeight += st.weight;
       target = found.length ? target : doneWeight;
+      // Pausa para que se vea que se encontró; después sigue el siguiente (al último le sigue "Todo listo")
+      if(!fast && !found.length && i < steps.length - 1) await wait(INTRO_STEP_PAUSE);
     }
     return problems;
   }
@@ -4179,8 +4284,9 @@ function showErrorPage(kind, falta){
     if(!canFly){ await wait(fast ? 0 : 700); return; }
 
     const to = brandLogo.getBoundingClientRect();
-    setTimeout(() => body.classList.remove('intro-name'), INTRO_FLY * 0.72);   // el nombre aparece al llegar
-    await flyTo(to, INTRO_FLY);
+    const flyMs = INTRO_FLY / Math.min(INTRO_SPEED, 1.3);       // el vuelo se acelera menos para que se siga viendo bien
+    setTimeout(() => body.classList.remove('intro-name'), flyMs * 0.72);   // el nombre aparece al llegar
+    await flyTo(to, flyMs);
 
     // Onda en el punto de aterrizaje
     const ripple = document.createElement('i');
@@ -4217,7 +4323,7 @@ function showErrorPage(kind, falta){
       const lacking = INTRO_IMG_TOTAL - foundNow();
       label.textContent = lacking > 0 ? `Todo listo · faltan ${lacking} fondos` : 'Todo listo';
       pct.textContent   = '';
-      await wait(fast ? 0 : INTRO_HOLD);
+      await wait(fast ? 0 : INTRO_HOLD / INTRO_SPEED);
       await dockOnLock();
       await flyLogo();
     }catch(e){
