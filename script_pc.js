@@ -1757,18 +1757,42 @@ const bgProbe = url => new Promise(done => {
   img.src = url;
 });
 
+// Comprueba si un archivo existe SIN descargarlo (petición HEAD: solo pregunta, no baja la imagen).
+// Antes cada fondo se descargaba completo solo para saber si existía, y eso hacía lenta la pantalla de inicio.
+const bgServed = /^https?:$/.test(location.protocol);
+const bgExists = async url => {
+  if(!bgServed) return bgProbe(url);                       // con file:// no hay servidor al que preguntar
+  try{
+    const r = await fetch(url, { method: 'HEAD', cache: 'no-store' });   // sin caché: siempre pregunta al servidor si el nombre existe ahora
+    if(r.status === 404 || r.status === 410) return false;
+    if(r.ok){
+      const t = r.headers.get('content-type') || '';
+      return !t || /^image\//i.test(t) || t === 'application/octet-stream';   // un 200 con HTML no es una imagen
+    }
+  }catch(e){}
+  return bgProbe(url);                                     // el servidor no acepta HEAD: se prueba cargándola
+};
+
 // Prueba fondo1, fondo2... en cada formato; se detiene tras 5 números seguidos sin imagen
 async function bgProbeFolder(cat){
   const exts = ['.png', '.jpg', '.jpeg', '.webp'];
-  let changed = false, miss = 0;
-  for(let n = 1; n <= 300 && miss < 5; n++){
-    const hits = await Promise.all(exts.map(async ext => {
-      const name = 'fondo' + n + ext;
-      return (await bgProbe(bgImage(cat.folder + name).slice(5, -2))) ? name : null;
+  const BATCH = 6;                                          // números que se revisan a la vez
+  let changed = false, miss = 0, n = 1;
+  while(n <= 300 && miss < 5){
+    const nums = Array.from({ length: Math.min(BATCH, 301 - n) }, (_, k) => n + k);
+    const rows = await Promise.all(nums.map(async num => {
+      const hits = await Promise.all(exts.map(async ext => {
+        const name = 'fondo' + num + ext;
+        return (await bgExists(bgImage(cat.folder + name).slice(5, -2))) ? name : null;
+      }));
+      return hits.filter(Boolean);
     }));
-    const found = hits.filter(Boolean);
-    miss = found.length ? 0 : miss + 1;
-    if(bgAddFiles(cat, found)) changed = true;
+    for(const found of rows){                               // se cuentan en orden: se detiene tras 5 números seguidos sin imagen
+      miss = found.length ? 0 : miss + 1;
+      if(bgAddFiles(cat, found)) changed = true;
+      if(miss >= 5) break;
+    }
+    n += BATCH;
   }
   return changed;
 }
@@ -3686,38 +3710,201 @@ function showErrorPage(kind, falta){
     const key = absUrl(img.getAttribute('src') || '');
     if(seen.has(key)) continue;
     seen.add(key);
-    reqItems.push({ label: relative(key), img });
+    reqItems.push({ label: relative(key), img, url: key, probe: bgExists(key) });
   }
   if(iconLink && iconLink.getAttribute('href')){
     const key = absUrl(iconLink.getAttribute('href'));
-    if(!seen.has(key)) reqItems.push({ label: relative(key), probe: bgProbe(key) });
+    if(!seen.has(key)) reqItems.push({ label: relative(key), probe: bgExists(key), url: key, icon: iconLink });
   }
 
   // 2) Revisión de las imágenes de una en una: primero las obligatorias y luego los fondos de
   //    images/fondos-preguardados (aquí sí pueden faltar algunos). "found" guarda cada una en el orden
   //    en que se encuentra; el contador de la pantalla de carga las va mostrando de una en una.
-  const inspect = { done: false, found: [], reqMissing: [], fondosMissing: [] };
+  // ---- Revisión a fondo: si una imagen no cargó, se investiga por qué y se prueban otras mayúsculas/minúsculas ----
+  // (GitHub Pages distingue mayúsculas: "logo.png" y "Logo.png" son archivos distintos)
+  const capFirst = t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  // Todas las combinaciones de mayúsculas/minúsculas de un nombre (solo si tiene pocas letras: 2^letras pruebas)
+  function caseCombos(name, max){
+    const idx = [...name].map((c, i) => /\p{L}/u.test(c) ? i : -1).filter(i => i >= 0);
+    if(idx.length > max) return [];
+    const out = [];
+    for(let m = 0; m < (1 << idx.length); m++){
+      const a = [...name];
+      idx.forEach((pos, k) => { a[pos] = (m >> k) & 1 ? a[pos].toUpperCase() : a[pos].toLowerCase(); });
+      out.push(a.join(''));
+    }
+    return out;
+  }
+  function urlVariants(url, allExts){
+    let u; try{ u = new URL(url); }catch(e){ return []; }
+    const slash = u.pathname.lastIndexOf('/');
+    const dir   = u.pathname.slice(0, slash + 1);
+    const file  = safeDecode(u.pathname.slice(slash + 1));
+    const dot   = file.lastIndexOf('.');
+    if(dot < 1) return [];
+    const name = file.slice(0, dot), ext = file.slice(dot);
+    const simple = [...new Set([name, name.toLowerCase(), name.toUpperCase(), capFirst(name), name.charAt(0).toLowerCase() + name.slice(1)])];
+    const ext3   = [...new Set([ext, ext.toLowerCase(), ext.toUpperCase()])];
+    const wide   = [...new Set([...ext3, ...(allExts ? ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.ico'] : [])])];
+    const combos = allExts ? caseCombos(name, 6) : [];      // ej. "3WiFi" → 3wifi, 3wiFi, 3wIfi... (hasta 6 letras)
+    const seenF = new Set([file]), out = [];
+    const add = (n, e) => {
+      const f = n + e;
+      if(seenF.has(f)) return;
+      seenF.add(f);
+      out.push({ file: f, url: u.origin + dir + encodeURIComponent(f) + u.search });
+    };
+    simple.forEach(n => wide.forEach(e => add(n, e)));
+    combos.forEach(n => ext3.forEach(e => add(n, e)));
+    return out;
+  }
+
+  // Lista real de archivos de una carpeta del sitio (solo en GitHub Pages, y solo cuando algo falla).
+  // Sirve para encontrar el archivo sin importar cómo esté escrito. Necesita https://api.github.com en connect-src del HTML.
+  const ghDirCache = {};
+  function ghListDir(dirPath){
+    const host = location.hostname;
+    if(!/\.github\.io$/i.test(host)) return Promise.resolve(null);
+    if(ghDirCache[dirPath]) return ghDirCache[dirPath];
+    const ckey = 'startpage_ghdir:' + dirPath;
+    try{                                                                       // lista guardada hace menos de 10 min (así no se gastan las consultas de GitHub)
+      const c = JSON.parse(localStorage.getItem(ckey) || 'null');
+      if(c && Array.isArray(c.names) && Date.now() - c.t < 600000) return ghDirCache[dirPath] = Promise.resolve(c.names);
+    }catch(e){}
+    const owner = host.split('.')[0];
+    const segs  = dirPath.split('/').filter(Boolean).map(safeDecode);
+    const tries = [];
+    if(segs.length) tries.push({ repo: segs[0], path: segs.slice(1) });     // página de proyecto: usuario.github.io/Repo/...
+    tries.push({ repo: host, path: segs });                                  // página de usuario: usuario.github.io/...
+    return ghDirCache[dirPath] = (async () => {
+      for(const t of tries){
+        try{
+          const api = 'https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(t.repo) + '/contents/' + t.path.map(encodeURIComponent).join('/');
+          const r = await fetch(api, { headers: { Accept: 'application/vnd.github+json' } });
+          if(!r.ok) continue;
+          const list = await r.json();
+          if(Array.isArray(list)){
+            const names = list.filter(x => x.type === 'file').map(x => x.name);
+            try{ localStorage.setItem(ckey, JSON.stringify({ t: Date.now(), names })); }catch(e){}
+            return names;
+          }
+        }catch(e){}
+      }
+      return null;
+    })();
+  }
+  // Devuelve { avail: false } si no se pudo consultar a GitHub, o { avail: true, hit } (hit = null si de verdad no existe con ningún nombre)
+  async function ghFindReal(url){
+    let u; try{ u = new URL(url); }catch(e){ return { avail: false }; }
+    if(u.origin !== location.origin) return { avail: false };
+    const slash = u.pathname.lastIndexOf('/');
+    const dir   = u.pathname.slice(0, slash + 1);
+    const names = await ghListDir(dir);
+    if(!names) return { avail: false };
+    const want = safeDecode(u.pathname.slice(slash + 1)).toLowerCase();
+    const base = w => w.replace(/\.[^.]+$/, '');
+    const real = names.find(n => n.toLowerCase() === want)
+              || names.find(n => /\.(png|jpe?g|webp|gif|svg|ico)$/i.test(n) && base(n).toLowerCase() === base(want));   // misma palabra, otra extensión
+    return { avail: true, hit: real ? { file: real, url: u.origin + dir + encodeURIComponent(real) + u.search } : null };
+  }
+  async function deepCheck(url, allExts, quick){
+    // "quick" (fondos): ya se sabe que no existe con ese nombre; solo se busca con otro nombre y no se pierde tiempo en diagnósticos
+    let status = 0, bytes = 0;
+    if(!quick){
+      // 1) ¿existe de verdad? Se pide sin caché y se comprueba que sea una imagen que el navegador pueda abrir
+      try{
+        const r = await fetch(url, { cache: 'no-store' });
+        status = r.status;
+        if(r.ok){
+          const blob = await r.blob();
+          bytes = blob.size;
+          if(bytes > 0){
+            const tmp = URL.createObjectURL(blob);
+            const good = await bgProbe(tmp);
+            URL.revokeObjectURL(tmp);
+            if(good) return { ok: true, url, note: 'cargó al revisarla a fondo (probablemente era la caché)' };
+          }
+        }
+      }catch(e){ status = -1; }
+    }
+    // 2a) Se pregunta a GitHub cómo se llama de verdad el archivo en esa carpeta (cualquier combinación de mayúsculas)
+    const gh = await ghFindReal(url);
+    if(gh.avail && gh.hit && await bgExists(gh.hit.url)) return { ok: true, url: gh.hit.url, file: gh.hit.file, note: 'existe como "' + gh.hit.file + '" (cambia el nombre en el código o en GitHub)' };
+    // 2b) Si GitHub no se pudo consultar, se prueban las combinaciones una por una
+    if(!gh.avail){
+      const vars = urlVariants(url, allExts);
+      const hits = await Promise.all(vars.map(async v => (await bgExists(v.url)) ? v : null));
+      const hit  = hits.find(Boolean);
+      if(hit) return { ok: true, url: hit.url, file: hit.file, note: 'existe como "' + hit.file + '" (cambia el nombre en el código o en GitHub)' };
+    }
+    // 3) No está: se dice por qué
+    const why = status === 404 ? 'no existe (404)'
+              : status === 200 ? (bytes === 0 ? 'el archivo está vacío' : 'el archivo está dañado o no es una imagen')
+              : status === -1  ? 'no se pudo consultar'
+              : 'error ' + status;
+    return { ok: false, why };
+  }
+
+  // Si falta una imagen obligatoria se puede usar una copia suya con otro nombre (clave en minúsculas → archivo de images/)
+  const IMG_FALLBACKS = { 'start_page.png': 'Logo.png' };
+
+  // Limpia lo que la página guarda como caché (Cache Storage y las listas de nombres de GitHub).
+  // NO toca tus ajustes (fondo elegido, tema, etc.). El caché normal del navegador no se puede vaciar desde una página.
+  async function clearCaches(){
+    try{ if(window.caches){ const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } }catch(e){}
+    try{ Object.keys(localStorage).filter(k => k.startsWith('startpage_ghdir:')).forEach(k => localStorage.removeItem(k)); }catch(e){}
+    for(const k of Object.keys(ghDirCache)) delete ghDirCache[k];
+  }
+  clearCaches();                                           // al empezar la pantalla de carga
+  const inspect = { done: false, found: [], reqMissing: [], fondosMissing: [], usedFallback: [] };
   (async () => {
     const deadline = t0 + INTRO_MAX;
     for(const it of reqItems){
-      let ok;
-      if(it.img){
-        while(!it.img.complete && performance.now() < deadline) await wait(30);
-        ok = imgOk(it.img);
-      }else{
-        ok = await it.probe;
+      // Solo se pregunta "¿existe?" (sin descargar la imagen y sin revisar si está completa o dañada)
+      let ok = await it.probe;
+      if(!ok){
+        const res = await deepCheck(it.url, true);
+        if(res.ok){
+          ok = true;
+          console.warn('[Imágenes] ' + it.label + ': ' + res.note);
+          if(it.img){ it.img.src = res.url; it.img.style.display = ''; }
+          if(it.icon) it.icon.href = res.url;
+        }else{
+          // Imagen de respaldo: si no está esta, se usa su copia con otro nombre (misma imagen, distinto archivo)
+          const fbName = IMG_FALLBACKS[safeDecode(it.url).split('/').pop().toLowerCase()];
+          const fbUrl  = fbName ? absUrl('images/' + fbName) : '';
+          if(fbUrl && await bgExists(fbUrl)){
+            ok = true;
+            console.warn('[Imágenes] No se encontró ' + it.label + ' (' + res.why + '). Se carga images/' + fbName + ' en su lugar: es la misma imagen con otro nombre, pero conviene arreglar el archivo original.');
+            if(it.img){ it.img.src = fbUrl; it.img.style.display = ''; }
+            if(it.icon) it.icon.href = fbUrl;
+            inspect.usedFallback.push(it.label + ' → images/' + fbName);
+          }else{
+            it.label += ' — ' + res.why;
+          }
+        }
       }
       (ok ? inspect.found : inspect.reqMissing).push(it.label);
     }
     await bgScanDone.catch(() => {});
-    for(const cat of BG_CATEGORIES){
-      for(const file of cat.files){
-        const path  = cat.folder + file;
-        const label = BG_FOLDER + path;
-        const ok = await bgProbe(bgImage(path).slice(5, -2));
-        (ok ? inspect.found : inspect.fondosMissing).push(label);
+    // Fondos: todos se revisan a la vez (antes uno por uno y descargando cada imagen); el orden de la lista se conserva
+    const jobs = [];
+    for(const cat of BG_CATEGORIES) for(const file of [...cat.files]) jobs.push({ cat, file, path: cat.folder + file });
+    const results = await Promise.all(jobs.map(async job => {
+      const rel = bgImage(job.path).slice(5, -2);
+      let ok = await bgExists(rel);
+      if(!ok){
+        const res = await deepCheck(absUrl(rel), false, true);
+        if(res.ok && res.file){
+          const i = job.cat.files.indexOf(job.file);
+          if(i >= 0) job.cat.files[i] = res.file;            // se usa el nombre real (con sus mayúsculas)
+          console.warn('[Fondos] ' + BG_FOLDER + job.path + ': ' + res.note);
+          ok = true;
+        }
       }
-    }
+      return ok;
+    }));
+    jobs.forEach((job, k) => (results[k] ? inspect.found : inspect.fondosMissing).push(BG_FOLDER + job.path));
     inspect.done = true;
   })();
 
@@ -3798,11 +3985,11 @@ function showErrorPage(kind, falta){
       check: () => { applyDevice(); return []; } },
     { name: 'Imágenes',   weight: .65, time: time('img'),
       onStart: row => startReveal(row),
-      ready:  () => inspect.done && revealed >= inspect.found.length && fontsReady && pageLoaded,
+      ready:  () => inspect.done && revealed >= inspect.found.length && fontsReady,
       real:   () => {
         const imgPart = inspect.done ? (inspect.found.length ? revealed / inspect.found.length : 1)
                                      : Math.min(.95, revealed / INTRO_IMG_TOTAL);
-        return .85 * imgPart + .15 * ((fontsReady ? 1 : 0) + (pageLoaded ? 1 : 0)) / 2;
+        return .85 * imgPart + .15 * (fontsReady ? 1 : 0);
       },
       detail: () => `${revealed}/${INTRO_IMG_TOTAL}`,
       check:  () => checkImages() }
@@ -4012,6 +4199,7 @@ function showErrorPage(kind, falta){
     }
 
     finished = true;
+    clearCaches();                                         // al terminar de verificar todo: se entra al buscador "limpio"
     if(problems.length){
       // Algo falta: se deja ver qué paso falló y la página no inicia
       label.textContent = 'No se pudo iniciar';
