@@ -1476,10 +1476,8 @@ function toggleReveal(el, show, animate = true){
 }
 
 /* --- 7.0 Modo claro / oscuro --- */
-// Sin elección guardada se usa el modo del sistema; el interruptor del panel guarda la elección.
+// Sin elección guardada se usa el modo del sistema; el interruptor de Ajustes → Apariencia guarda la elección.
 const MODE_KEY = 'startpage_mode';
-const modeToggle = byId('modeToggle');
-const modeLabel = byId('modeLabel');
 const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 let modeTimer = 0;
 
@@ -1499,7 +1497,6 @@ function applyMode(mode, animate){
   }
   root.dataset.mode = mode;
   document.querySelectorAll('.mode-switch input').forEach(cb => { cb.checked = (mode === 'dark'); });
-  if(modeLabel) modeLabel.textContent = mode === 'dark' ? 'Modo oscuro' : 'Modo claro';
 }
 function setMode(mode, origin){
   try{ localStorage.setItem(MODE_KEY, mode); }catch(e){}
@@ -1522,9 +1519,6 @@ function setMode(mode, origin){
   }else{
     applyMode(mode, true);
   }
-}
-if(modeToggle){
-  modeToggle.addEventListener('change', () => setMode(modeToggle.checked ? 'dark' : 'light'));
 }
 // Si no hay elección guardada, sigue los cambios del sistema en vivo
 systemDark.addEventListener('change', e => { if(!savedMode()) applyMode(e.matches ? 'dark' : 'light', true); });
